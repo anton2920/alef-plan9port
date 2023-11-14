@@ -1,5 +1,7 @@
 #!/bin/sh
 
+PROJECT=libc
+
 VERBOSITY=0
 VERBOSITYFLAGS=""
 while test "$1" = "-v"; do
@@ -37,12 +39,12 @@ case $1 in
 			run cc -c $CFLAGS utf/$file
 		done
 
-		run ar rsc lib9.a *.o
+		run ar rsc $PROJECT.a *.o
 		run mkdir -p ../../lib
-		run cp lib9.a ../../lib
+		run cp $PROJECT.a ../../lib
 		;;
 	clean)
-		run rm -f *.o y.tab.[ch] y.output a.out lib9.a
+		run rm -f *.o y.tab.[ch] y.output a.out $PROJECT.a
 		;;
 	*)
 		echo "Target is not supported!"
