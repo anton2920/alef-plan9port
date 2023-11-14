@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PROJECT=libbio
+PROJECT=libmach
 
 VERBOSITY=0
 VERBOSITYFLAGS=""
@@ -18,13 +18,17 @@ run()
 
 CFLAGS="-I../../../386/include -I../../include -ggdb -O0 -fno-inline"
 
+# TODO(anton2920): silence warnings for later.
+CFLAGS="$CFLAGS -Wno-gnu-designator -Wno-sizeof-pointer-memaccess -Wno-dangling-else -Wno-parentheses -Wno-shift-negative-value -Wno-return-type"
+
 STARTTIME=`date +%s`
 
 case $1 in
 	'')
-		for file in `echo bbuffered.c bfildes.c bflush.c bgetc.c bgetrune.c bgetd.c binit.c boffset.c bprint.c bputc.c bputrune.c brdline.c brdstr.c bread.c bseek.c bwrite.c`; do
+		for file in `echo executable.c fakeobj.c map.c obj.c swap.c sym.c access.c machdata.c setmach.c 8.c 8db.c 8obj.c`; do
 			run cc -c $CFLAGS $file
 		done
+		run cc -c $CFLAGS freebsd.c
 
 		run ar rsc $PROJECT.a *.o
 		run mkdir -p ../../lib

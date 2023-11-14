@@ -44,7 +44,7 @@ case $1 in
 		run cp $PROJECT.a ../../lib
 		;;
 	clean)
-		run rm -f *.o y.tab.[ch] y.output a.out $PROJECT.a
+		run rm -f *.o $PROJECT.a
 		;;
 	*)
 		echo "Target is not supported!"
