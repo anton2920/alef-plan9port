@@ -33,6 +33,7 @@ targets()
 	target sys/src/libc $1
 	target sys/src/libbio $1
 	target sys/src/libmach $1
+	target sys/src/cmd/cc $1
 }
 
 STARTTIME=`date +%s`
