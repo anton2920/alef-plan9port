@@ -1,5 +1,7 @@
 #!/bin/sh
 
+PROJECT=alef
+
 VERBOSITY=0
 VERBOSITYFLAGS=""
 while test "$1" = "-v"; do
@@ -12,7 +14,7 @@ OLDPWD=`pwd`
 
 run()
 {
-	if test $VERBOSITY -gt 1; then echo "$@"; fi
+	if test $VERBOSITY -gt 0; then echo "$@"; fi
 	"$@" || exit 1
 }
 
@@ -30,7 +32,7 @@ target()
 
 targets()
 {
-	target sys/src/libc $1
+	target sys/src/lib9 $1
 	target sys/src/libbio $1
 	target sys/src/libmach $1
 	target sys/src/cmd/cc $1
@@ -57,4 +59,4 @@ esac
 
 ENDTIME=`date +%s`
 
-echo Done $1 in $((ENDTIME-STARTTIME))s
+echo Done $PROJECT $1 in $((ENDTIME-STARTTIME))s

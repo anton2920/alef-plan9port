@@ -12,7 +12,7 @@ done
 
 run()
 {
-	if test $VERBOSITY -gt 1; then echo "$@"; fi
+	if test $VERBOSITY -gt 0; then echo "$@"; fi
 	"$@" || exit 1
 }
 
@@ -46,4 +46,4 @@ esac
 
 ENDTIME=`date +%s`
 
-echo Done $1 in $((ENDTIME-STARTTIME))s
+echo Done $PROJECT $1 in $((ENDTIME-STARTTIME))s

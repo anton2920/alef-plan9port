@@ -40,4 +40,4 @@ esac
 
 ENDTIME=`date +%s`
 
-echo Done $1 in $((ENDTIME-STARTTIME))s
+echo Done $PROJECT $1 in $((ENDTIME-STARTTIME))s
