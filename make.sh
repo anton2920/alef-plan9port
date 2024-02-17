@@ -37,6 +37,7 @@ targets()
 	target sys/src/libmach $1
 	target sys/src/cmd/cc $1
 	target sys/src/cmd/8l $1
+	target sys/src/cmd/8a $1
 }
 
 STARTTIME=`date +%s`
@@ -52,6 +53,7 @@ case $1 in
 		targets $1
 
 		run rm -rf sys/lib
+		run rm -rf 386/bin
 		;;
 	*)
 		echo "Target is not supported!"

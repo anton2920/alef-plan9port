@@ -23,7 +23,7 @@ STARTTIME=`date +%s`
 case $1 in
 	'')
 		# libc
-		for file in `echo _p9dir.c _exits.c argv0.c atoi.c cleanname.c create.c dirfstat.c dirfwstat.c dirstat.c dirwstat.c dup.c errstr.c exec.c execl.c exitcode.c exits.c getenv.c getfields.c getwd.c main.c nan.c nulldir.c open.c readn.c seek.c strecpy.c sysfatal.c time.c tokenize.c`; do
+		for file in `echo _p9dir.c _exits.c argv0.c atoi.c await.c cleanname.c create.c dirfstat.c dirfwstat.c dirstat.c dirwstat.c dup.c errstr.c exec.c execl.c exitcode.c exits.c getenv.c getfields.c getwd.c main.c nan.c nulldir.c open.c readn.c seek.c strecpy.c sysfatal.c time.c tokenize.c`; do
 			run cc -c $CFLAGS $file
 		done
 		run cc -c $CFLAGS -DGOOS='"freebsd"' -DGOARCH='"386"' -DGOROOT='"stub"' -DGOVERSION='"v1-anton2920"' goos.c
