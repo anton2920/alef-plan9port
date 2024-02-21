@@ -1,9 +1,9 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#define Extern extern
 #include "parl.h"
 #include "y.tab.h"
-#define Extern extern
 #include "globl.h"
 
 /* fold constant operators */
@@ -22,7 +22,10 @@ foldop(Node *n)
 	r = n->right;
 	l = n->left;
 
-	SET(ri, li, rf, lf);
+	ri = 0;
+	li = 0;
+	rf = 0;
+	lf = 0;
 	switch(r->t->type) {
 	default:
 		switch(l->t->type) {
@@ -127,7 +130,7 @@ foldop(Node *n)
 		n->ival = !li;
 		break;
 
-	case OARSH:		
+	case OARSH:
 		n->ival = li >> ri;
 		break;
 
@@ -135,7 +138,7 @@ foldop(Node *n)
 		n->ival = (ulong)li >> ri;
 		break;
 
-	case OALSH:	
+	case OALSH:
 		n->ival = li << ri;
 		break;
 
@@ -286,7 +289,7 @@ convop(Node *n)
 	}
 	else
 		v = l->ival;
-	
+
 	switch(n->t->type) {
 	default:
 		n->ival = v;
@@ -397,7 +400,7 @@ rewrite(Node *n)
 		rewrite(r);
 		if(l->type == OCONST) {
 			n->right = n->left;
-			n->left = r;	
+			n->left = r;
 		}
 		commute(n);
 		l = n->left;
@@ -422,7 +425,7 @@ rewrite(Node *n)
 
 		if(l->type == OCONST) {
 			n->right = n->left;
-			n->left = r;	
+			n->left = r;
 		}
 		commute(n);
 		l = n->left;
@@ -582,7 +585,7 @@ iter(Node *n, int doit)
 		*lp = *f;
 		lp = f->right;
 		*n = *v;
-		break;		
+		break;
 	}
 	if(doit)
 		lp = olp;

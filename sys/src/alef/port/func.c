@@ -1,9 +1,9 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#define Extern extern
 #include "parl.h"
 #include "y.tab.h"
-#define Extern extern
 #include "globl.h"
 
 typedef struct Call Call;
@@ -29,7 +29,7 @@ treeflat(Node *n, Node **vec)
 	default:
 		if(vec)
 			vec[veccnt] = n;
-		veccnt++;	
+		veccnt++;
 		break;
 	case OBREAK:
 		break;
@@ -161,7 +161,7 @@ tyarg(Node *proto, Type *poly)
 			return 1;
 		}
 		cc.argc++;
-		return 0;	
+		return 0;
 	}
 
 	if(typeval(typeasgn, t, arg->t)) {

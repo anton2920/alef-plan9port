@@ -1,9 +1,9 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#define Extern extern
 #include "parl.h"
 #include "y.tab.h"
-#define Extern extern
 #include "globl.h"
 
 	/* function names must be less than 128 chars */
@@ -37,7 +37,7 @@ packmk(ulong sig, Type *t, int s)
 	p->sig = sig;
 	p->t = t;
 	p->hash = *l;
-	*l = p;	
+	*l = p;
 }
 
 Node*
@@ -81,7 +81,7 @@ unpacker(Node *c, Node *dp, Node *tp, Type *t)
 		c = an(OLIST, c, n);
 		n = an(OADDEQ, dupn(dp), con(t->size));
 		c = an(OLIST, c, n);
-		break;		
+		break;
 	case TSINT:
 	case TSUINT:
 		n = an(OIND, dupn(dp), nil);
@@ -94,7 +94,7 @@ unpacker(Node *c, Node *dp, Node *tp, Type *t)
 		c = an(OLIST, c, x);
 		n = an(OADDEQ, dupn(dp), con(t->size));
 		c = an(OLIST, c, n);
-		break;		
+		break;
 	case TCHAR:
 		n = an(OPINC, dupn(dp), nil);
 		n = an(OIND, n, nil);
@@ -205,20 +205,20 @@ packer(Node *c, Node *dp, Node *tp, Type *t)
 		n = an(OIND, dupn(dp), nil);
 		n = an(OASGN, n, an(ORSH, dupn(tmp), con(24)));
 		c = an(OLIST, c, n);
-		n = an(OADD, dupn(dp), con(1)); 
+		n = an(OADD, dupn(dp), con(1));
 		n = an(OIND, n, nil);
 		n = an(OASGN, n, an(ORSH, dupn(tmp), con(16)));
 		c = an(OLIST, c, n);
-		n = an(OADD, dupn(dp), con(2)); 
+		n = an(OADD, dupn(dp), con(2));
 		n = an(OIND, n, nil);
 		n = an(OASGN, n, an(ORSH, dupn(tmp), con(8)));
 		c = an(OLIST, c, n);
-		n = an(OADD, dupn(dp), con(3)); 
+		n = an(OADD, dupn(dp), con(3));
 		n = an(OIND, n, nil);
 		n = an(OASGN, n, dupn(tmp));
 		c = an(OLIST, c, n);
 		c = an(OLIST, c, an(OADDEQ, dp, con(t->size)));
-		break;		
+		break;
 	case TSINT:
 	case TSUINT:
 		tmp = stknode(t);
@@ -232,7 +232,7 @@ packer(Node *c, Node *dp, Node *tp, Type *t)
 		n = an(OASGN, n, dupn(tmp));
 		c = an(OLIST, c, n);
 		c = an(OLIST, c, an(OADDEQ, dp, con(t->size)));
-		break;		
+		break;
 	case TCHAR:
 		n = an(OPINC, dupn(dp), nil);
 		n = an(OIND, n, nil);

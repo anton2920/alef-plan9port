@@ -1190,14 +1190,14 @@ blsh(int n)
 }
 
 int
-Bconv(void *o, Fconv *f)
+Bconv(Fmt *fp)
 {
 	char str[128], ss[128], *s;
 	Bits bits;
 	int i;
 
 	str[0] = 0;
-	bits = *(Bits*)o;
+	bits = va_arg(fp->args, Bits);
 	while(bany(&bits)) {
 		i = bnum(bits);
 		if(str[0])
@@ -1212,8 +1212,7 @@ Bconv(void *o, Fconv *f)
 		strcat(str, s);
 		bits.b[i/32] &= ~(1L << (i%32));
 	}
-	strconv(str, f);
-	return sizeof(bits);
+	return fmtstrcpy(fp, str);
 }
 
 int

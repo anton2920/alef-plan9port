@@ -1,8 +1,8 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
-#include "parl.h"
 #define Extern
+#include "parl.h"
 #include "globl.h"
 
 int	ac;
@@ -27,9 +27,9 @@ rexit(void)
 void
 main(int argc, char *argv[])
 {
-	Waitmsg w;
+	Waitmsg *w;
 	char *p, *t, o, *of;
-	int pid, launched, nproc;
+	int launched, nproc;
 
 	argv0 = argv[0];
 	if(argc == 1)
@@ -41,7 +41,7 @@ main(int argc, char *argv[])
 
 	chks = 1;
 	of = 0;
-	av[ac++] = "-N";
+	/* av[ac++] = "-N"; */
 	ARGBEGIN{
 	case 'I':
 	case 'D':
@@ -51,7 +51,7 @@ main(int argc, char *argv[])
 		break;
 
 	case 'S':
-		asm++;
+		Sasm++;
 		break;
 
 	case 'o':
@@ -160,20 +160,33 @@ main(int argc, char *argv[])
 		}
 		if(launched == nproc) {
 			launched--;
-			pid = wait(&w);
-			if(pid < 0)
+			w = wait();
+			if((w == nil) || (w->pid < 0))
 				fatal("wait: %r");
-			if(w.msg[0])
+			if(w->msg[0])
 				nerr++;
+			free(w);
 		}
 	}
 	while(launched) {
-		wait(&w);
-		if(w.msg[0])
+		w = wait();
+		if(w == nil)
+			fatal("wait: %r");
+		if(w->msg[0])
 			nerr++;
+		free(w);
 		launched--;
 	}
 	rexit();
+}
+
+void
+doprint(char *s, char *es, char *fmt, va_list argp)
+{
+	if (s >= es) {
+		return;
+	}
+	vsnprint(s, es-s, fmt, argp);
 }
 
 void
@@ -181,7 +194,11 @@ fatal(char *fmt, ...)
 {
 	char buf[512];
 
-	doprint(buf, buf+sizeof(buf), fmt, (&fmt+1));
+	va_list ap;
+	va_start(ap, fmt);
+	doprint(buf, buf+sizeof(buf), fmt, ap);
+	va_end(ap);
+
 	fprint(2, "%s: %L (fatal compiler problem) %s\n", argv0, line, buf);
 	if(opt('A'))
 		abort();
@@ -197,8 +214,12 @@ diag(Node *n, char *fmt, ...)
 	srcline = line;
 	if(n)
 		srcline = n->srcline;
-	
-	doprint(buf, buf+sizeof(buf), fmt, (&fmt+1));
+
+	va_list ap;
+	va_start(ap, fmt);
+	doprint(buf, buf+sizeof(buf), fmt, ap);
+	va_end(ap);
+
 	umap(buf);
 	fprint(2, "%L %s\n", srcline, buf);
 	if(nerr++ > 10) {
@@ -219,8 +240,12 @@ warn(Node *n, char *fmt, ...)
 	srcline = line;
 	if(n)
 		srcline = n->srcline;
-	
-	doprint(buf, buf+sizeof(buf), fmt, (&fmt+1));
+
+	va_list ap;
+	va_start(ap, fmt);
+	doprint(buf, buf+sizeof(buf), fmt, ap);
+	va_end(ap);
+
 	umap(buf);
 	fprint(2, "%L warning: %s\n", srcline, buf);
 }
@@ -234,7 +259,12 @@ yyerror(char *a, ...)
 		yyerror("syntax error, near symbol '%s'", symbol);
 		return;
 	}
-	doprint(buf, buf+sizeof(buf), a, &(&a)[1]);
+
+	va_list ap;
+	va_start(ap, a);
+	doprint(buf, buf+sizeof(buf), a, ap);
+	va_end(ap);
+
 	print("%L %s\n", line, buf);
 	if(nerr++ > 10) {
 		fprint(2, "%L too many errors, giving up\n", line);
@@ -276,7 +306,7 @@ compile(char *s, char *of)
 	if(p)
 		memmove(buf, p+1, strlen(p+1)+1);
 
-	if(asm) {
+	if(Sasm) {
 		strcpy(asmfile, buf);
 		strcat(asmfile, ".s");
 		remove(asmfile);
@@ -318,7 +348,7 @@ compile(char *s, char *of)
 	Bterm(bin);
 
 	if(opt('q') == 0 && nerr == 0) {
-		if(asm)
+		if(Sasm)
 			sfile(asmfile);
 		else
 			objfile(ofile);
@@ -335,13 +365,13 @@ compile(char *s, char *of)
 }
 
 void
-free(void *a)			/* Prevent redifinition of malloc */
+lfree(void *a)			/* Prevent redifinition of malloc */
 {
 	USED(a);
 }
 
 void *
-malloc(long a)
+lmalloc(long a)
 {
 	char *p;
 	static long mem;
@@ -364,18 +394,16 @@ malloc(long a)
 			fatal("no memory");
 		mem = Chunk;
 	}
-	return 0;
 }
 
 int
-VBconv(void *o, Fconv *f)
+VBconv(Fmt *fp)
 {
 	char str[128];
 	int i, n, t, pc;
-	extern printcol;
 
-	n = *(int*)o;
-	pc = printcol;
+	n = va_arg(fp->args, int);
+	pc = 0;
 	i = 0;
 	while(pc < n) {
 		t = (pc+8) & ~7;
@@ -388,6 +416,5 @@ VBconv(void *o, Fconv *f)
 		pc++;
 	}
 	str[i] = 0;
-	strconv(str, f);
-	return sizeof(n);
+	return fmtstrcpy(fp, str);
 }

@@ -2,8 +2,8 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
-#include "parl.h"
 #define Extern extern
+#include "parl.h"
 #include "globl.h"
 %}
 
@@ -20,8 +20,8 @@
 }
 
 %type <node> zinit ivardecl zelist prog decllist decl vardecllist vardecl ztag
-%type <node> arglist arrayspec indsp block slist stmnt zexpr 
-%type <node> term zarlist elist typespec memberlist name autolist 
+%type <node> arglist arrayspec indsp block slist stmnt zexpr
+%type <node> term zarlist elist typespec memberlist name autolist
 %type <node> arg bufdim clist case rbody zlab sname adtfunc nlstmnt
 %type <node> cbody expr castexpr monexpr autodecl setlist zargs
 %type <node> telist tcomp ztelist tuplearg ctlist tcase tbody
@@ -34,7 +34,7 @@
 
 %left	';'
 %left	','
-%right	'=' Tvasgn Taddeq Tsubeq Tmuleq Tdiveq Tmodeq Trsheq Tlsheq Tandeq Toreq Txoreq 
+%right	'=' Tvasgn Taddeq Tsubeq Tmuleq Tdiveq Tmodeq Trsheq Tlsheq Tandeq Toreq Txoreq
 %right	'?'
 %left	Toror
 %left	Tandand
@@ -57,7 +57,7 @@
 %token <string>	Tstring
 
 %token Tint Tuint Tsint Tsuint Tuchar Tchar Tfloat Tchannel Tvoid Tcase Tcheck
-%token Tbreak Taggregate Tunion Tstorage Treturn Tswitch Twhile Tfor Tpar Telse 
+%token Tbreak Taggregate Tunion Tstorage Treturn Tswitch Twhile Tfor Tpar Telse
 %token Tandand Tdo Tcomm Toror Tneq Teq Tadt Ttask Tprocess Tselect Tif Traise
 %token Tleq Tgeq Tindir Tlsh Trsh Tset Tsname Trescue Tintern Textern Tdefault
 %token Taddeq Tsubeq Tmuleq Tdiveq Tmodeq Trsheq Tlsheq Tcontinue Tnewtype
@@ -168,7 +168,7 @@ typespec	: Taggregate ztag
 		{
 			if($2)
 				$2->sym->lexval = Ttypename;
-		} 
+		}
 		'{' memberlist '}' ztag
 		{
 			$$ = an(OAGDECL, an(OLIST, $2, $7), $5);
@@ -176,8 +176,8 @@ typespec	: Taggregate ztag
 		| Tunion ztag
 		{
 			if($2)
-				$2->sym->lexval = Ttypename; 
-		} 
+				$2->sym->lexval = Ttypename;
+		}
 		'{' memberlist  '}' ztag
 		{
 			$$ = an(OUNDECL, an(OLIST, $2, $7), $5);
@@ -191,7 +191,7 @@ typespec	: Taggregate ztag
 			}
 			else
 				diag(nil, "adt decl needs type name");
-		} 
+		}
 		'{' memberlist '}' ztag
 		{
 			if($2) {
@@ -467,7 +467,7 @@ tuplearg	: tname
 		}
 		;
 
-autolist	: 
+autolist	:
 		{ $$ = nil; }
 		| autolist autodecl
 		{
@@ -489,9 +489,9 @@ autodecl	: xtname vardecllist ';'
 		}
 		;
 
-block		: '{' 
+block		: '{'
 		{ enterblock(); }
-		autolist 
+		autolist
 		{ scopeis(Automatic); }
 		slist
 		{ leaveblock(); }
@@ -499,7 +499,7 @@ block		: '{'
 		{ $$ = an(OBLOCK, $5, nil); }
 		| Tguard
 		{ enterblock(); }
-		autolist 
+		autolist
 		{ scopeis(Automatic); }
 		slist
 		{ leaveblock(); }
@@ -686,7 +686,7 @@ nlstmnt		: error ';'
 		{
 			$2->link = swstack;
 			swstack = $2;
-		} 
+		}
 		tbody
 		{
 			swstack = $2->link;
@@ -717,7 +717,7 @@ zexpr		:
 expr		: castexpr
 		| expr '*' expr
 		{
-			$$ = an(OMUL, $1, $3); 
+			$$ = an(OMUL, $1, $3);
 		}
 		| expr '/' expr
 		{
@@ -877,7 +877,7 @@ typecast	: xtname
 		;
 
 monexpr		: term
-		| '*' castexpr 
+		| '*' castexpr
 		{
 			$$ = an(OIND, $2, nil);
 		}

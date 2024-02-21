@@ -1,9 +1,9 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#define Extern extern
 #include "parl.h"
 #include "y.tab.h"
-#define Extern extern
 #include "globl.h"
 #include "tcom.h"
 
@@ -150,7 +150,7 @@ tmathop(Node *n, int logical, char tab[Ntype][Ntype])
 	}
 
 	/* Propogate results and insert converts to fix types */
-	n->t = builtype[v];	
+	n->t = builtype[v];
 	if(l->t->type != v) {
 		if(typecmp(n->t, l->t, 5) == 0) {
 			newn = dupn(l);
@@ -171,7 +171,7 @@ tmathop(Node *n, int logical, char tab[Ntype][Ntype])
 		}
 	}
 	if(opt('m')) {
-		print("tmathop: %T %T result %s\n", l->t, r->t, typestr[v]);
+		print("tmathop: %T %T result %s\n", l->t, r->t, _typestr[v]);
 		ptree(n, 0);
 	}
 	return 0;
@@ -442,7 +442,7 @@ typechk(Node *n, int evalfor)
 			break;
 		}
 		return 0;
-		
+
 	case OITER:
 		return 0;
 
@@ -523,7 +523,7 @@ typechk(Node *n, int evalfor)
 
 		if(tycall(n))
 			return 1;
-		
+
 		/* Pick up the return type from TFUNC->next */
 		n->t = l->t->next;
 		break;
@@ -861,7 +861,7 @@ typechk(Node *n, int evalfor)
 
 		return tmathop(n, 1, moptype);
 		break;
-	
+
 	case ORECV:
 		if(typechk(l, 0))
 			return 1;
@@ -964,7 +964,7 @@ typechk(Node *n, int evalfor)
 				if(typechk(l, 0))
 					return 1;
 				n->t = r->t;
-				break;		
+				break;
 			}
 		}
 
@@ -1073,7 +1073,7 @@ typechk(Node *n, int evalfor)
 		if(l == nil) {
 			if(t->type != TVOID) {
 				diag(n, "return should be %P", curfunc);
-				return 1; 
+				return 1;
 			}
 			n->t = builtype[TVOID];
 			break;

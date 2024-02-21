@@ -1,9 +1,9 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#define Extern extern
 #include "parl.h"
 #include "y.tab.h"
-#define Extern extern
 #include "globl.h"
 
 typedef struct tyconst Tyconst;
@@ -25,7 +25,7 @@ struct tyconst
 	TIND,		Machptr,   Align_Machptr,  "rcvint",	"sndint",
 	TCHANNEL,	Machchan,  Align_Machchan, "rcvint",	"sndint",
 	TARRAY,		0,	   0,		   0,		0,
-	TAGGREGATE,	0,	   Align_Machint,  "rcvmem",	"sndmem",	
+	TAGGREGATE,	0,	   Align_Machint,  "rcvmem",	"sndmem",
 	TUNION,		0,	   Align_Machint,  "rcvmem",	"sndmem",
 	TFUNC,		0,	   0,		   0,		0,
 	TVOID,		0,	   0,		   0,		0,
@@ -33,7 +33,7 @@ struct tyconst
 	TPOLY,		2*Machint, Align_Machint,  "rcvmem",	"sndmem",
 };
 
-char *typestr[] =
+char *_typestr[] =
 {
 	[TXXX]		"UNRESOLVED",
 	[TINT]		"INT",
@@ -79,15 +79,15 @@ telem(int i, Type *t, char *buf)
 	tn = t->type;
 
 	if(opt('z'))
-		i += sprint(buf+i, "%s(%d)", typestr[tn], t->size);
+		i += sprint(buf+i, "%s(%d)", _typestr[tn], t->size);
 
 	if(tn == TARRAY && t->next && t->next->size != 0)
 		i += sprint(buf+i, "[%d]", t->size/t->next->size);
 	else
 	if(tn == TPOLY)
-		i += sprint(buf+i, "%s<%s>", typestr[tn], t->sym->name);
+		i += sprint(buf+i, "%s<%s>", _typestr[tn], t->sym->name);
 	else
-		i += sprint(buf+i, "%s", typestr[tn]);
+		i += sprint(buf+i, "%s", _typestr[tn]);
 
 	if(tn != TAGGREGATE && tn != TUNION && tn != TADT)
 		return i;
@@ -99,7 +99,7 @@ telem(int i, Type *t, char *buf)
 		i += sprint(buf+i, " %s", t->sym->name);
 	else
 		i += sprint(buf+i, " %t", t);
-		
+
 	return i;
 }
 
@@ -121,22 +121,20 @@ tvarp(int i, Type *t, char *buf, char *paren)
 }
 
 int
-typeconv(void *type, Fconv *f)
+typeconv(Fmt *fp)
 {
 	Type *t;
 	int i, n;
 	char buf[1024];
 
-	t = *((Type**)type);
+	t = va_arg(fp->args, Type*);
 
-	if(t == 0) {
-		strconv("TZ", f);
-		return(sizeof(Type*));
-	}
+	if(t == 0)
+		return fmtstrcpy(fp, "TZ");
 
 	i = 0;
 	while(t) {
-		if(t->variant && f->chr != 'V')
+		if(t->variant && fp->r != 'V')
 			i = tvarp(i, t, buf, "()");
 		else
 			i = telem(i, t, buf);
@@ -148,40 +146,37 @@ typeconv(void *type, Fconv *f)
 		}
 		t = t->next;
 	}
-	strconv(buf, f);
-	return(sizeof(Type*));
+	return fmtstrcpy(fp, buf);
 }
 
 int
-tconv(void *tx, Fconv *f)
+tconv(Fmt *fp)
 {
 	int i;
 	Sym *s;
 	Type *t;
 	char buf[1024];
 
-	t = *((Type**)tx);
+	t = va_arg(fp->args, Type*);
 
 	s = ltytosym(t);
 	if(s != 0)
-		strconv(s->name, f);
-	else {	
-		t = t->next;
-		i = 1;
-		buf[0] = '(';
-		while(t) {
-			if(t->member)
-				i += sprint(buf+i, "%T, ", t);
-			else
-				i += sprint(buf+i, "%T", t);
-			t = t->member;
-		}
-		buf[i++] = ')';
-		buf[i] = '\0';
+		return fmtstrcpy(fp, s->name);
 
-		strconv(buf, f);
+	t = t->next;
+	i = 1;
+	buf[0] = '(';
+	while(t) {
+		if(t->member)
+			i += sprint(buf+i, "%T, ", t);
+		else
+			i += sprint(buf+i, "%T", t);
+		t = t->member;
 	}
-	return(sizeof(Type*));
+	buf[i++] = ')';
+	buf[i] = '\0';
+
+	return fmtstrcpy(fp, buf);
 }
 
 /*
@@ -201,10 +196,10 @@ prnagun(Type *t, int depth)
 	indent[depth*2] = '\0';
 
 	if(t->tag)
-		print("%s'%s' %s", indent, t->tag->name, typestr[t->type]);
+		print("%s'%s' %s", indent, t->tag->name, _typestr[t->type]);
 	else
-		print("%s%s", indent, typestr[t->type]);
-		
+		print("%s%s", indent, _typestr[t->type]);
+
 	print(" (%d %d)\n", t->size, t->offset);
 	for(m = t->next; m; m = m->member) {
 		print("%s", indent);
@@ -214,9 +209,9 @@ prnagun(Type *t, int depth)
 
 			if(n->tag)
 		 		print(" '%s' %s ",
-					n->tag->name, typestr[n->type]);
+					n->tag->name, _typestr[n->type]);
 			else
-				print(" %s ", typestr[n->type]);
+				print(" %s ", _typestr[n->type]);
 			print("(%d %d) ", n->size, n->offset);
 		}
 		if(n)
@@ -226,7 +221,7 @@ prnagun(Type *t, int depth)
 	}
 }
 
-/* 
+/*
  * Install the basic types
  */
 void
@@ -379,7 +374,6 @@ vcmp(Type *l, Type *r)
 		l = l->variant;
 		r = r->variant;
 	}
-	return 1;
 }
 
 int
@@ -437,7 +431,6 @@ typecmp(Type *l, Type *r, int d)
 			break;
 		}
 	}
-	return 0;
 }
 
 void
@@ -490,10 +483,10 @@ polysub(Type *pl, Type *t)
 		*nt = *t;
 
 	nt->next = polysub(pl, t->next);
-	return nt;	
+	return nt;
 }
 
-/* 
+/*
  * Serach for a tag/type offset in a complex type
  */
 Type*
@@ -678,7 +671,7 @@ tydot(Node *n)
 	return 0;
 }
 
-/* 
+/*
  * rewrite <-=
  */
 int
@@ -878,7 +871,7 @@ tyunalloc(Node *n)
 		n->left = dupn(alf);
 		n->right = n1;
 		n->type = OCALL;
-		n->t = builtype[TVOID];		
+		n->t = builtype[TVOID];
 		if(typechk(n, 0))
 			fatal("unalloc");
 	}

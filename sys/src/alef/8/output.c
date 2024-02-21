@@ -482,6 +482,7 @@ objfile(char *name)
 
 	outhist(&b);
 
+	slot = 0;
 	memset(scache, 0, sizeof(scache));
 
 	for(i = proghead; i; i = i->next) {
@@ -529,6 +530,8 @@ vcache(Biobuf *b, Adres *a)
 	c = &scache[slot];
 	c->s = s;
 	c->class = t;
+
+	s->slot = slot;
 
 	vname(b, t, s->name, slot);
 
@@ -622,13 +625,13 @@ vaddr(char *bp, Adres *a, int s)
  * Quoted string printer
  */
 int
-qconv(void *o, Fconv *f)
+qconv(Fmt *fp)
 {
 	char buf[64], *b;
 	char *p;
 	int i;
 
-	p = *((char**)o);
+	p = va_arg(fp->args, char *);
 	b = buf;
 	for(i = 0; i < 8; i++) {
 		if(rcmap[*p]) {
@@ -640,59 +643,55 @@ qconv(void *o, Fconv *f)
 			*b++ = *p++;
 	}
 	*b = '\0';
-	strconv(buf, f);
-	return sizeof(p);
+	return fmtstrcpy(fp, buf);
 }
 
 /*
  * register printer
  */
 int
-Rconv(void *o, Fconv *f)
+Rconv(Fmt *fp)
 {
 	int i;
 
-	i = *(int*)o;
-	strconv(rnam[i], f);
-	return sizeof(int*);
+	i = va_arg(fp->args, int);
+	return fmtstrcpy(fp, rnam[i]);
 }
 
 /*
  * Instruction printer
  */
 int
-iconv(void *o, Fconv *f)
+iconv(Fmt *fp)
 {
 	Inst *i;
 	Adres *s, *d;
 	char buf[128], *p;
 
-	i = *((Inst **)o);
+	i = va_arg(fp->args, Inst*);
 	s = &i->src1;
 	d = &i->dst;
 	p = itab[i->op];
 	if(i->op == ADATA || i->op == AINIT || i->op == ADYNT)
 		sprint(buf, "\t%s\t%a/%d,%a", p, s, s->scale, d);
-	else
-	if(i->dst.type == D_NONE)
+	else if(d->type == D_NONE)
 		sprint(buf, "\t%s\t%a", p, s);
 	else
 		sprint(buf, "\t%s\t%a,%a", p, s, d);
 
-	strconv(buf, f);
-	return sizeof(i);
+	return fmtstrcpy(fp, buf);
 }
 
 /*
  * Address syllable printer
  */
 int
-aconv(void *o, Fconv *f)
+aconv(Fmt *fp)
 {
 	Adres *a;
 	char buf[128], tmp[32];
 
-	a = *((Adres **)o);
+	a = va_arg(fp->args, Adres*);
 	if(a->type >= D_INDIR) {
 		if(a->ival != 0)
 			sprint(buf, "%d(%R)", a->ival, a->type-D_INDIR);
@@ -763,8 +762,7 @@ aconv(void *o, Fconv *f)
 		strcat(buf, tmp);
 	}
 
-	strconv(buf, f);
-	return sizeof(a);
+	return fmtstrcpy(fp, buf);
 }
 
 typedef struct runtime Runtime;

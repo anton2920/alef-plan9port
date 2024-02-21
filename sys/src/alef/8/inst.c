@@ -217,7 +217,7 @@ codmop(Node *o, Node *l, Node *r, Node *dst)
 		return;
 
 	case ODIV:
-	case ODIVEQ:	
+	case ODIVEQ:
 	case OMOD:
 	case OMODEQ:
 		switch(o->t->type) {
@@ -432,6 +432,9 @@ vconst(Node *n)
 			return -159;
 		return i;
 	}
+
+	/* NOTE(anton2920): assuming it's an error code. */
+	return -159;
 }
 
 /*
@@ -473,7 +476,7 @@ codcond(int comp, Node *src1, Node *src2)
 	case TCHAR:
 		instruction(ACMPB, src1, src2);
 		break;
-	}		
+	}
 	instruction(a, ZeroN, ZeroN);
 }
 
@@ -659,7 +662,7 @@ mkaddr(Node *n, Adres *a, int ur0)
 			a->index = D_NONE;
 			break;
 		default:
-			fatal("mkaddr: bad OIND %a", a);		
+			fatal("mkaddr: bad OIND %a", a);
 		}
 		break;
 

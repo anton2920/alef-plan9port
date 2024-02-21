@@ -1,7 +1,5 @@
 #!/bin/sh
 
-PROJECT=alef
-
 VERBOSITY=0
 VERBOSITYFLAGS=""
 while test "$1" = "-v"; do
@@ -35,9 +33,9 @@ targets()
 	target sys/src/lib9 $1
 	target sys/src/libbio $1
 	target sys/src/libmach $1
-	target sys/src/cmd/cc $1
 	target sys/src/cmd/8l $1
 	target sys/src/cmd/8a $1
+	target sys/src/alef/8 $1
 }
 
 STARTTIME=`date +%s`
@@ -45,9 +43,6 @@ STARTTIME=`date +%s`
 case $1 in
 	'')
 		targets $1
-
-		# Build 8c and 8l
-		# Build alef
 		;;
 	clean)
 		targets $1
@@ -62,4 +57,4 @@ esac
 
 ENDTIME=`date +%s`
 
-echo Done $PROJECT $1 in $((ENDTIME-STARTTIME))s
+echo Done $1 in $((ENDTIME-STARTTIME))s

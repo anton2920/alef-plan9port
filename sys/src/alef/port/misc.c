@@ -1,8 +1,8 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
-#include "parl.h"
 #define Extern extern
+#include "parl.h"
 #include "globl.h"
 
 void
@@ -20,7 +20,7 @@ listcount(Node *n, Node **vec)
 	default:
 		if(vec)
 			vec[veccnt] = n;
-		veccnt++;	
+		veccnt++;
 		break;
 	}
 }
@@ -152,7 +152,7 @@ char inverted[Nrops] =	/* invrel */
 {
 	[OEQ]	OEQ,
 	[ONEQ]	ONEQ,
-	[OLEQ]	OGEQ,		
+	[OLEQ]	OGEQ,
 	[OLOS]	OHIS,
 	[OLT]	OGT,
 	[OLO]	OHI,
@@ -293,13 +293,13 @@ pargs(Node *n, char *p)
 }
 
 int
-protoconv(void *t, Fconv *f)
+protoconv(Fmt *fp)
 {
 	Node *n;
 	char *p, buf[512];
 	int i;
 
-	n = *((Node**)t);
+	n = va_arg(fp->args, Node*);
 	i = sprint(buf, "%T %s(", n->t->next, n->sym->name);
 	if(n->left == 0)
 		strcat(buf, "void, ");
@@ -312,23 +312,21 @@ protoconv(void *t, Fconv *f)
 		p[1] = '\0';
 	}
 
-	strconv(buf, f);
-	return(sizeof(Node*));
+	return fmtstrcpy(fp, buf);
 }
 
 int
-nodeconv(void *t, Fconv *f)
+nodeconv(Fmt *fp)
 {
 	Node *n;
 	char *p, buf[256];
 	int i;
 
-	n = *((Node**)t);
+	n = va_arg(fp->args, Node*);
 
 	if(n == 0) {
 		strcpy(buf, "ZeroN");
-		strconv(buf, f);
-		return(sizeof(Node*));
+		return fmtstrcpy(fp, buf);
 	}
 
 	i = sprint(buf, "%s [%d,%d] ", treeop[n->type], n->sun, n->islval);
@@ -383,8 +381,7 @@ nodeconv(void *t, Fconv *f)
 		break;
 	}
 
-	strconv(buf, f);
-	return(sizeof(Node*));
+	return fmtstrcpy(fp, buf);
 }
 
 char indent[] = "...........................";
@@ -542,7 +539,7 @@ argtree(Node *n)
 			t = stknode(s->t);
 			dtest = 0;
 			substitute(droot, s, t);
-		
+
 			t = an(OASGN, t, l);
 			t->t = s->t;
 			dlst = an(OLIST, t, dlst);

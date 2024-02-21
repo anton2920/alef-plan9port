@@ -7,7 +7,7 @@
 #include "globl.h"
 #include "y.tab.h"
 
-int Lconv(void*, Fconv*);
+int Lconv(Fmt*);
 
 struct keywd
 {
@@ -48,7 +48,7 @@ keywds[] =
 	"sint",		Tsint,
 	"sizeof",	Tstorage,
 	"switch",	Tswitch,
-	"task",		Ttask,		
+	"task",		Ttask,
 	"typedef",	Tnewtype,
 	"typeof",	Ttypeof,
 	"uint",		Tuint,
@@ -68,8 +68,8 @@ void
 kinit(void)
 {
 	int i;
-	
-	for(i = 0; keywds[i].name; i++) 
+
+	for(i = 0; keywds[i].name; i++)
 		enter(keywds[i].name, keywds[i].terminal);
 
 	polyptr = enter("ptr", Tid);
@@ -178,7 +178,7 @@ pragma(char *buf)
 	}
 	else
 	if(strcmp(p, "noprofile") == 0)
-		txtprof = 1;	
+		txtprof = 1;
 	else
 	if(strcmp(p, "profile") == 0)
 		txtprof = 0;
@@ -255,7 +255,11 @@ mkstring(char *fmt, ...)
 	String *s;
 	char buf[Strsize];
 
-	doprint(buf, buf+sizeof(buf), fmt, (&fmt+1));
+	va_list ap;
+	va_start(ap, fmt);
+	doprint(buf, buf+sizeof(buf), fmt, ap);
+	va_end(ap);
+
 	s = malloc(sizeof(String));
 	s->string = strdup(buf);
 	s->len = strlen(buf)+1;
@@ -699,7 +703,7 @@ ltytosym(Type *t)
 
 /* History algorithm from kens compiler */
 int
-Lconv(void *o, Fconv *f)
+Lconv(Fmt *fp)
 {
 	char str[Strsize], s[Strsize];
 	Hist *h;
@@ -713,7 +717,7 @@ Lconv(void *o, Fconv *f)
 	long l, d;
 	int i, n;
 
-	l = *(long*)o;
+	l = va_arg(fp->args, long);
 	n = 0;
 	for(h = hist; h != H; h = h->link) {
 		if(h->offset == -1)
@@ -721,7 +725,7 @@ Lconv(void *o, Fconv *f)
 		if(l < h->line)
 			break;
 		if(h->name) {
-			if(h->offset != 0) {	 
+			if(h->offset != 0) {
 				/* #line directive, not #pragma */
 				if(n > 0 && n < HISTSZ && h->offset >= 0) {
 					a[n-1].line = h;
@@ -754,7 +758,7 @@ Lconv(void *o, Fconv *f)
 		if(strlen(s)+strlen(str) >= Strsize-10)
 			break;
 		strcat(str, s);
-		l = a[i].incl->line - 1;	
+		l = a[i].incl->line - 1;
 	}
 
 	if(n == 0)
@@ -764,8 +768,7 @@ Lconv(void *o, Fconv *f)
 	if(strncmp(str, wd, n) != 0)
 		n = 0;
 
-	strconv(str+n, f);
-	return sizeof(l);
+	return fmtstrcpy(fp, str+n);
 }
 
 void

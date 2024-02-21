@@ -1,9 +1,9 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#define Extern extern
 #include "parl.h"
 #include "y.tab.h"
-#define Extern extern
 #include "globl.h"
 
 int
@@ -27,7 +27,7 @@ sinit(Node *v, Type *t, Node *i, int off)
 	if(z != TCHAR && z != TSUINT)
 		return 0;
 
-	
+
 	if(t->next->type != z)
 		diag(n, "incompatible constant string initialisation %T = %T", t, i->t);
 
@@ -35,7 +35,7 @@ sinit(Node *v, Type *t, Node *i, int off)
 	for(s = *l; s; s = s->next) {
 		if(n->sym == s->n.sym) {
 			*l = s->next;
-			break;	
+			break;
 		}
 		l = &s->next;
 	}
@@ -121,7 +121,7 @@ doinit(Node *v, Type *t, Node *i, int off)
 			return;
 		}
 		goto emit;
-	
+
 	case TIND:
 		if(i->t == nil) {
 			diag(i, "undefined symbol in initialisation %s", n);
@@ -194,10 +194,10 @@ doinit(Node *v, Type *t, Node *i, int off)
 				return;
 			}
 
-			ind = in->left->ival*sz;	
+			ind = in->left->ival*sz;
 			doinit(v, t->next, in->right, off+ind);
 			ind += sz;
-		}	
+		}
 		if(ind > dim)
 			dim = ind;
 		if(t->size == 0)
@@ -317,7 +317,7 @@ tasgninit(Type *t, Node *i, int off)
 			i->right = nil;
 		}
 		break;
-	
+
 
 	case TARRAY:
 		if(i->type != OILIST) {
@@ -361,7 +361,7 @@ tasgninit(Type *t, Node *i, int off)
 			if(tasgninit(t->next, in->right, off+ind))
 				return 1;
 			ind += sz;
-		}	
+		}
 		if(ind > dim)
 			dim = ind;
 		if(dim > t->size) {

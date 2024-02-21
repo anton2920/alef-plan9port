@@ -1,10 +1,10 @@
 /*
- * Machine dependant sparc
+ * Machine dependant 386
  */
 
-#include "/sys/src/cmd/8c/8.out.h"
+#include "8.out.h"
 #define AOUTL	".8"
-#define IALEF	"-I/sys/include/alef"
+#define IALEF	"-I/usr/local/include/alef"
 
 enum
 {
@@ -78,7 +78,7 @@ struct Glab
 
 struct Adres
 {
-	char	type;
+	uchar	type;
 	char	etype;
 	char	index;
 	char	scale;
@@ -190,41 +190,41 @@ struct	Rgn
 #define	CINF	1000
 #define	LOOP	3
 
-Tinfo	*tip;
-Node	ratv;
-Node	*atv;
-int	frsize;
-ulong 	args;
+Extern Tinfo	*tip;
+Extern Node	ratv;
+Extern Node	*atv;
+Extern int	frsize;
+Extern ulong 	args;
 
-Rgn	region[NRGN];
-Rgn*	rgp;
-int	nregion;
-int	nvar;
+Extern Rgn	region[NRGN];
+Extern Rgn*	rgp;
+Extern int	nregion;
+Extern int	nvar;
 
-Bits	externs;
-Bits	param;
-Bits	consts;
-Bits	addrs;
-Bits	zbits;
+Extern Bits	externs;
+Extern Bits	param;
+Extern Bits	consts;
+Extern Bits	addrs;
+Extern Bits	zbits;
 
-long	regbits;
-long	exregbits;
+Extern long	regbits;
+Extern long	exregbits;
 
-int	change;
+Extern int	change;
 
-Reg*	firstr;
-Reg*	lastr;
-Reg	zreg;
-Reg*	freer;
-Var	var[NVAR];
+Extern Reg*	firstr;
+Extern Reg*	lastr;
+Extern Reg	zreg;
+Extern Reg*	freer;
+Extern Var	var[NVAR];
 
-Inst	zprog;
-ulong	pc;
+Extern Inst	zprog;
+Extern ulong	pc;
 
-Node	*F0;
-Node	*F1;
+Extern Node	*F0;
+Extern Node	*F1;
 
-Scache	scache[NSYM];
+Extern Scache	scache[NSYM];
 
 /* Code generator and machine specific optimisation */
 Inst		*ai(void);
@@ -307,7 +307,7 @@ int		bnum(Bits);
 Bits		blsh(int);
 int		beq(Bits, Bits);
 int		bitno(long);
-int		Bconv(void*, Fconv*);
+int		Bconv(Fmt*);
 void		ieeedtod(Ieee*, double);
 int		vcache(Biobuf*, Adres*);
 char		*vaddr(char*, Adres*, int);

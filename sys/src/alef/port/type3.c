@@ -1,9 +1,9 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#define Extern extern
 #include "parl.h"
 #include "y.tab.h"
-#define Extern extern
 #include "globl.h"
 
 static Type **agtail;
@@ -63,7 +63,7 @@ argproto(Type *tbasic, Node *indsp, Node *arrayspec)
 
 	return n;
 }
-/* 
+/*
  * recurse through the declaration list attaching types to symbols and tags
  */
 void
@@ -177,7 +177,7 @@ agunshape(Node *n)
 		t = tmcpy(n->t);
 		t->tag = n->sym;
 		break;
-	}	
+	}
 	*agtail = t;
 	agtail = &t->member;
 }
@@ -187,7 +187,7 @@ unshape(Type *t)
 {
 	Type *m;
 	ulong offset;
-	
+
 	t = at(TAGGREGATE, t);
 
 	offset = 0;
@@ -218,7 +218,7 @@ ispoly(Type *t)
 			return 1;
 		t = t->next;
 	}
-	return 0;		
+	return 0;
 }
 
 /*
@@ -260,7 +260,7 @@ buildtype(Node *n)
 	case OUNDECL:
 		t = at(TUNION, 0);
 		break;
-	}		
+	}
 
 	/* Recurse through */
 	agtail = &t->next;
@@ -456,7 +456,7 @@ mkasgn(Node *n, ulong off)
 				return 1;
 			}
 			sptr = svsptr->member;
-			return 0;		
+			return 0;
 		}
 
 		if(chklval(n))
@@ -862,7 +862,7 @@ polyxerox(Node *n)
 	n->left = an(OLIST, n->left, c);
 
 	n->type = OBLOCK;
-	n->right = tmp;	
+	n->right = tmp;
 	n->t = ot;
 
 	if(typechk(n->left, 0))
