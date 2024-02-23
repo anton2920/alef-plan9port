@@ -7,17 +7,17 @@
  * or modification of this software and in all copies of the supporting
  * documentation for such software.
  * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
- * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE ANY
- * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+ * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE
+ * ANY REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
 #include <stdarg.h>
 #include <string.h>
+#include "plan9.h"
 #include "utf.h"
-#include "utfdef.h"
 
 int
-utflen(const char *s)
+utflen(char *s)
 {
 	int c;
 	long n;
@@ -34,5 +34,4 @@ utflen(const char *s)
 			s += chartorune(&rune, s);
 		n++;
 	}
-	return 0;
 }

@@ -16,15 +16,7 @@
  * THE MERCHANTABILITY OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
 
-#include <u.h>
-#include <libc.h>
-#include "fmtdef.h"
+This is a Unix port of the Plan 9 formatted I/O package.
 
-int
-__errfmt(Fmt *f)
-{
-	char *s;
+Please send comments about the packaging to Russ Cox <rsc@swtch.com>.
 
-	s = strerror(errno);
-	return fmtstrcpy(f, s);
-}

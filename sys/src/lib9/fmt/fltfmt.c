@@ -1,26 +1,17 @@
-/*
- * The authors of this software are Rob Pike and Ken Thompson,
- * with contributions from Mike Burrows and Sean Dorward.
- *
- *     Copyright (c) 2002-2006 by Lucent Technologies.
- *     Portions Copyright (c) 2004 Google Inc.
- * 
- * Permission to use, copy, modify, and distribute this software for any
- * purpose without fee is hereby granted, provided that this entire notice
- * is included in all copies of any software which is or includes a copy
- * or modification of this software and in all copies of the supporting
- * documentation for such software.
- * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
- * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES 
- * NOR GOOGLE INC MAKE ANY REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING 
- * THE MERCHANTABILITY OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
- */
-
 /* Copyright (c) 2002-2006 Lucent Technologies; see LICENSE */
-#include <u.h>
+#include <stdio.h>
+#include <math.h>
+#include <float.h>
+#include <string.h>
+#include <stdlib.h>
 #include <errno.h>
-#include <libc.h>
+#include <stdarg.h>
+#include <fmt.h>
+#include <assert.h>
+#include "plan9.h"
+#include "fmt.h"
 #include "fmtdef.h"
+#include "nan.h"
 
 enum
 {
@@ -52,8 +43,6 @@ static double pows10[] =
 	1e140, 1e141, 1e142, 1e143, 1e144, 1e145, 1e146, 1e147, 1e148, 1e149,
 	1e150, 1e151, 1e152, 1e153, 1e154, 1e155, 1e156, 1e157, 1e158, 1e159,
 };
-
-#undef	pow10
 #define	npows10 ((int)(sizeof(pows10)/sizeof(pows10[0])))
 #define	pow10(x)  fmtpow10(x)
 
@@ -254,7 +243,7 @@ xdtoa(double f, char *s, int *exp, int *neg, int *ns)
 	 * adjust conversion until strtod(s) == f exactly.
 	 */
 	for(i=0; i<10; i++) {
-		g = strtod(s, nil);
+		g = fmtstrtod(s, nil);
 		if(f > g) {
 			if(xadd1(s, NSIGNIF)) {
 				/* gained a digit */
@@ -285,7 +274,7 @@ xdtoa(double f, char *s, int *exp, int *neg, int *ns)
 		c = s[i];
 		if(c != '9') {
 			s[i] = '9';
-			g = strtod(s, nil);
+			g = fmtstrtod(s, nil);
 			if(g != f) {
 				s[i] = c;
 				break;
@@ -303,7 +292,7 @@ xdtoa(double f, char *s, int *exp, int *neg, int *ns)
 			ee--;
 			xfmtexp(tmp+NSIGNIF, ee, 0);
 		}
-		g = strtod(tmp, nil);
+		g = fmtstrtod(tmp, nil);
 		if(g == f) {
 			strcpy(s, tmp);
 			e = ee;
@@ -317,7 +306,7 @@ xdtoa(double f, char *s, int *exp, int *neg, int *ns)
 		c = s[i];
 		if(c != '0') {
 			s[i] = '0';
-			g = strtod(s, nil);
+			g = fmtstrtod(s, nil);
 			if(g != f) {
 				s[i] = c;
 				break;
@@ -676,4 +665,3 @@ __efgfmt(Fmt *fmt)
 	}
 	return 0;
 }
-

@@ -272,8 +272,6 @@ yyerror(char *a, ...)
 	}
 }
 
-clock_t	times(void *);
-
 void
 compile(char *s, char *of)
 {

@@ -1,30 +1,4 @@
-/*
-http://code.google.com/p/inferno-os/source/browse/libbio/binit.c
-
-	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
-	Revisions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).  All rights reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
-#include	<u.h>
-#include	<libc.h>
+#include	"lib9.h"
 #include	<bio.h>
 
 enum
@@ -87,7 +61,7 @@ Binits(Biobuf *bp, int f, int mode, unsigned char *p, int size)
 	p += Bungetsize;	/* make room for Bungets */
 	size -= Bungetsize;
 
-	switch(mode&~(ORCLOSE|OTRUNC)) {
+	switch(mode&~(OCEXEC|ORCLOSE|OTRUNC)) {
 	default:
 		fprint(2, "Bopen: unknown mode %d\n", mode);
 		return Beof;
@@ -142,19 +116,19 @@ Bopen(char *name, int mode)
 	Biobuf *bp;
 	int f;
 
-	switch(mode&~(ORCLOSE|OTRUNC)) {
+	switch(mode&~(OCEXEC|ORCLOSE|OTRUNC)) {
 	default:
 		fprint(2, "Bopen: unknown mode %d\n", mode);
 		return 0;
 
 	case OREAD:
-		f = open(name, OREAD);
+		f = open(name, mode);
 		if(f < 0)
 			return 0;
 		break;
 
 	case OWRITE:
-		f = create(name, OWRITE|OTRUNC, 0666);
+		f = create(name, mode, 0666);
 		if(f < 0)
 			return 0;
 	}
@@ -167,13 +141,15 @@ Bopen(char *name, int mode)
 int
 Bterm(Biobuf *bp)
 {
+	int ret;
 
 	deinstall(bp);
-	Bflush(bp);
+	ret = Bflush(bp);
 	if(bp->flag == Bmagic) {
 		bp->flag = 0;
-		close(bp->fid);
+		if(close(bp->fid) < 0)
+			ret = -1;
 		free(bp);
 	}
-	return 0;
+	return ret;
 }

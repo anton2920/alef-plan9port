@@ -4,6 +4,9 @@
 
 #define CPP	"/usr/bin/cpp"
 
+#undef malloc
+#undef free
+
 #define malloc	lmalloc
 #define free	lfree
 

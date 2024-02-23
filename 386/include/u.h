@@ -1,27 +1,4 @@
-/*
-Plan 9 from User Space include/u.h
-http://code.swtch.com/plan9port/src/tip/include/u.h
-
-Copyright 2001-2007 Russ Cox.  All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
+// See ../src/lib9/LICENSE
 
 #ifndef _U_H_
 #define _U_H_ 1
@@ -29,19 +6,23 @@ THE SOFTWARE.
 extern "C" {
 #endif
 
+#define HAS_SYS_TERMIOS 1
+
 #define __BSD_VISIBLE 1 /* FreeBSD 5.x */
 #if defined(__sun__)
 #	define __EXTENSIONS__ 1 /* SunOS */
-#	if defined(__SunOS5_6__) || defined(__SunOS5_7__) || defined(__SunOS5_8__)
+#	if defined(__SunOS5_6__) || defined(__SunOS5_7__) || defined(__SunOS5_8__) || defined(__SunOS5_9__) || defined(__SunOS5_10__)
 		/* NOT USING #define __MAKECONTEXT_V2_SOURCE 1 / * SunOS */
 #	else
+		/* What's left? */
 #		define __MAKECONTEXT_V2_SOURCE 1
 #	endif
 #endif
 #define _BSD_SOURCE 1
 #define _NETBSD_SOURCE 1	/* NetBSD */
 #define _SVID_SOURCE 1
-#if !defined(__APPLE__) && !defined(__OpenBSD__)
+#define _DEFAULT_SOURCE 1
+#if !defined(__APPLE__) && !defined(__OpenBSD__) && !defined(__AIX__)
 #	define _XOPEN_SOURCE 1000
 #	define _XOPEN_SOURCE_EXTENDED 1
 #endif
@@ -52,6 +33,10 @@ extern "C" {
 #	define __ISO_C_VISIBLE 1999
 #	undef __LONG_LONG_SUPPORTED
 #	define __LONG_LONG_SUPPORTED
+#endif
+#if defined(__AIX__)
+#	define _ALL_SOURCE
+#	undef HAS_SYS_TERMIOS
 #endif
 #define _LARGEFILE64_SOURCE 1
 #define _FILE_OFFSET_BITS 64
@@ -68,7 +53,6 @@ extern "C" {
 #include <stddef.h>
 #include <math.h>
 #include <ctype.h>	/* for tolower */
-#include <signal.h>
 
 /*
  * OS-specific crap
@@ -78,17 +62,11 @@ extern "C" {
 #define _NEEDUINT 1
 #define _NEEDULONG 1
 
-#ifdef __MINGW32__
-typedef jmp_buf sigjmp_buf;
-#endif
-typedef long p9jmp_buf[sizeof(sigjmp_buf)/sizeof(long)];
+typedef long p9jmp_buf[sizeof(sigjmp_buf)/(sizeof(long))];
 
 #if defined(__linux__)
 #	include <sys/types.h>
-#	if defined(__Linux26__)
-#		include <pthread.h>
-#		define PLAN9PORT_USING_PTHREADS 1
-#	endif
+#	include <pthread.h>
 #	if defined(__USE_MISC)
 #		undef _NEEDUSHORT
 #		undef _NEEDUINT
@@ -97,7 +75,6 @@ typedef long p9jmp_buf[sizeof(sigjmp_buf)/sizeof(long)];
 #elif defined(__sun__)
 #	include <sys/types.h>
 #	include <pthread.h>
-#	define PLAN9PORT_USING_PTHREADS 1
 #	undef _NEEDUSHORT
 #	undef _NEEDUINT
 #	undef _NEEDULONG
@@ -105,10 +82,7 @@ typedef long p9jmp_buf[sizeof(sigjmp_buf)/sizeof(long)];
 #elif defined(__FreeBSD__)
 #	include <sys/types.h>
 #	include <osreldate.h>
-#	if __FreeBSD_version >= 500000
-#		define PLAN9PORT_USING_PTHREADS 1
-#		include <pthread.h>
-#	endif
+#	include <pthread.h>
 #	if !defined(_POSIX_SOURCE)
 #		undef _NEEDUSHORT
 #		undef _NEEDUINT
@@ -116,7 +90,6 @@ typedef long p9jmp_buf[sizeof(sigjmp_buf)/sizeof(long)];
 #elif defined(__APPLE__)
 #	include <sys/types.h>
 #	include <pthread.h>
-#	define PLAN9PORT_USING_PTHREADS 1
 #	if __GNUC__ < 4
 #		undef _NEEDUSHORT
 #		undef _NEEDUINT
@@ -131,19 +104,19 @@ typedef long p9jmp_buf[sizeof(sigjmp_buf)/sizeof(long)];
 #elif defined(__NetBSD__)
 #	include <sched.h>
 #	include <sys/types.h>
+#	include <pthread.h>
 #	undef _NEEDUSHORT
 #	undef _NEEDUINT
 #	undef _NEEDULONG
 #elif defined(__OpenBSD__)
 #	include <sys/types.h>
+#	include <pthread.h>
 #	undef _NEEDUSHORT
 #	undef _NEEDUINT
 #	undef _NEEDULONG
-#elif defined(__MINGW32__)
 #else
 	/* No idea what system this is -- try some defaults */
 #	include <pthread.h>
-#	define PLAN9PORT_USING_PTHREADS 1
 #endif
 
 #ifndef O_DIRECT
@@ -167,35 +140,30 @@ typedef signed char schar;
 typedef unsigned long long uvlong;
 typedef long long vlong;
 
-typedef uint64_t u64int;
-typedef int64_t s64int;
+typedef uvlong u64int;
+typedef vlong s64int;
 typedef uint8_t u8int;
 typedef int8_t s8int;
 typedef uint16_t u16int;
 typedef int16_t s16int;
 typedef uintptr_t uintptr;
 typedef intptr_t intptr;
-typedef uint32_t u32int;
-typedef int32_t s32int;
+typedef uint u32int;
+typedef int s32int;
 
-typedef s8int int8;
-typedef u8int uint8;
-typedef s16int int16;
-typedef u16int uint16;
-typedef s32int int32;
 typedef u32int uint32;
-typedef s64int int64;
+typedef s32int int32;
+typedef u16int uint16;
+typedef s16int int16;
 typedef u64int uint64;
-
+typedef s64int int64;
+typedef u8int uint8;
+typedef s8int int8;
 
 #undef _NEEDUCHAR
 #undef _NEEDUSHORT
 #undef _NEEDUINT
 #undef _NEEDULONG
-
-#ifndef SIGBUS
-#define SIGBUS SIGSEGV /* close enough */
-#endif
 
 /*
  * Funny-named symbols to tip off 9l to autolink.
@@ -208,7 +176,7 @@ typedef u64int uint64;
  */
 #if defined(__GNUC__)
 #	undef strcmp	/* causes way too many warnings */
-#	if __GNUC__ >= 4 || (__GNUC__==3 && !defined(__APPLE_CC__) && !defined(__MINGW32__))
+#	if __GNUC__ >= 4 || (__GNUC__==3 && !defined(__APPLE_CC__))
 #		undef AUTOLIB
 #		define AUTOLIB(x) int __p9l_autolib_ ## x __attribute__ ((weak));
 #		undef AUTOFRAMEWORK

@@ -1,29 +1,3 @@
-/*
-Plan 9 from User Space src/lib9/await.c
-http://code.swtch.com/plan9port/src/tip/src/lib9/await.c
-
-Copyright 2001-2007 Russ Cox.  All Rights Reserved.
-Portions Copyright 2009 The Go Authors.  All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
 #define NOPLAN9DEFINES
 #include <u.h>
 #include <libc.h>
@@ -107,20 +81,13 @@ _p9strsig(char *s)
 	return 0;
 }
 
-static Waitmsg*
-_wait(int pid4, int opt)
+static int
+_await(int pid4, char *str, int n, int opt)
 {
 	int pid, status, cd;
 	struct rusage ru;
-	char tmp[64];
+	char buf[128], tmp[64];
 	ulong u, s;
-	Waitmsg *w;
-
-	w = malloc(sizeof *w + 200);
-	if(w == nil)
-		return nil;
-	memset(w, 0, sizeof *w);
-	w->msg = (char*)&w[1];
 
 	for(;;){
 		/* On Linux, pid==-1 means anyone; on SunOS, it's pid==0. */
@@ -128,52 +95,42 @@ _wait(int pid4, int opt)
 			pid = wait3(&status, opt, &ru);
 		else
 			pid = wait4(pid4, &status, opt, &ru);
-		if(pid <= 0) {
-			free(w);
-			return nil;
-		}
+		if(pid <= 0)
+			return -1;
 		u = ru.ru_utime.tv_sec*1000+((ru.ru_utime.tv_usec+500)/1000);
 		s = ru.ru_stime.tv_sec*1000+((ru.ru_stime.tv_usec+500)/1000);
-		w->pid = pid;
-		w->time[0] = u;
-		w->time[1] = s;
-		w->time[2] = u+s;
 		if(WIFEXITED(status)){
+			status = WEXITSTATUS(status);
 			if(status)
-				sprint(w->msg, "%d", status);
-			return w;
+				snprint(buf, sizeof buf, "%d %lud %lud %lud %d", pid, u, s, u+s, status);
+			else
+				snprint(buf, sizeof buf, "%d %lud %lud %lud ''", pid, u, s, u+s, status);
+			strecpy(str, str+n, buf);
+			return strlen(str);
 		}
 		if(WIFSIGNALED(status)){
 			cd = WCOREDUMP(status);
-			sprint(w->msg, "signal: %s", _p9sigstr(WTERMSIG(status), tmp));
-			if(cd)
-				strcat(w->msg, " (core dumped)");
-			return w;
+			snprint(buf, sizeof buf, "%d %lud %lud %lud 'signal: %s%s'", pid, u, s, u+s, _p9sigstr(WTERMSIG(status), tmp), cd ? " (core dumped)" : "");
+			strecpy(str, str+n, buf);
+			return strlen(str);
 		}
 	}
 }
 
-Waitmsg*
-p9wait(void)
+int
+await(char *str, int n)
 {
-	return _wait(-1, 0);
-}
-
-Waitmsg*
-p9waitfor(int pid)
-{
-	return _wait(pid, 0);
-}
-
-Waitmsg*
-p9waitnohang(void)
-{
-	return _wait(-1, WNOHANG);
+	return _await(-1, str, n, 0);
 }
 
 int
-p9waitpid(void)
+awaitnohang(char *str, int n)
 {
-	int status;
-	return wait(&status);
+	return _await(-1, str, n, WNOHANG);
+}
+
+int
+awaitfor(int pid, char *str, int n)
+{
+	return _await(pid, str, n, 0);
 }

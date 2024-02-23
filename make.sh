@@ -34,9 +34,13 @@ targets()
 {
 	target sys/src/lib9 $1
 	target sys/src/libbio $1
+	# target sys/src/libmach $1
 	target sys/src/cmd/8l $1
 	target sys/src/cmd/8a $1
+	# target sys/src/cmd/ar $1
+
 	target sys/src/alef/8 $1
+	# target sys/src/alef/lib/386 $1
 }
 
 STARTTIME=`date +%s`

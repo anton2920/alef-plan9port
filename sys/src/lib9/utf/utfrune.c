@@ -7,18 +7,17 @@
  * or modification of this software and in all copies of the supporting
  * documentation for such software.
  * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
- * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE ANY
- * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+ * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE
+ * ANY REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
 #include <stdarg.h>
 #include <string.h>
+#include "plan9.h"
 #include "utf.h"
-#include "utfdef.h"
 
-/* const - removed for go code */
 char*
-utfrune(const char *s, Rune c)
+utfrune(char *s, long c)
 {
 	long c1;
 	Rune r;
@@ -33,14 +32,13 @@ utfrune(const char *s, Rune c)
 			if(c1 == 0)
 				return 0;
 			if(c1 == c)
-				return (char*)s;
+				return s;
 			s++;
 			continue;
 		}
 		n = chartorune(&r, s);
 		if(r == c)
-			return (char*)s;
+			return s;
 		s += n;
 	}
-	return 0;
 }

@@ -7,22 +7,21 @@
  * or modification of this software and in all copies of the supporting
  * documentation for such software.
  * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
- * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE ANY
- * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+ * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE
+ * ANY REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
 #include <stdarg.h>
 #include <string.h>
+#include "plan9.h"
 #include "utf.h"
-#include "utfdef.h"
 
-/* const - removed for go code */
 char*
-utfrrune(const char *s, Rune c)
+utfrrune(char *s, long c)
 {
 	long c1;
 	Rune r;
-	const char *s1;
+	char *s1;
 
 	if(c < Runesync)		/* not part of utf sequence */
 		return strrchr(s, c);
@@ -32,7 +31,7 @@ utfrrune(const char *s, Rune c)
 		c1 = *(uchar*)s;
 		if(c1 < Runeself) {	/* one byte rune */
 			if(c1 == 0)
-				return (char*)s1;
+				return s1;
 			if(c1 == c)
 				s1 = s;
 			s++;
@@ -43,5 +42,4 @@ utfrrune(const char *s, Rune c)
 			s1 = s;
 		s += c1;
 	}
-	return 0;
 }

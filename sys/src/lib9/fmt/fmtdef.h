@@ -1,18 +1,4 @@
-/*
- * The authors of this software are Rob Pike and Ken Thompson.
- *
- *     Copyright (c) 2002-2006 by Lucent Technologies.
- * 
- * Permission to use, copy, modify, and distribute this software for any
- * purpose without fee is hereby granted, provided that this entire notice
- * is included in all copies of any software which is or includes a copy
- * or modification of this software and in all copies of the supporting
- * documentation for such software.
- * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
- * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES 
- * NOR GOOGLE INC MAKE ANY REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING 
- * THE MERCHANTABILITY OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
- */
+/* Copyright (c) 2002-2006 Lucent Technologies; see LICENSE */
 
 /*
  * dofmt -- format to a buffer
@@ -47,10 +33,10 @@ int          __fmtFdFlush(Fmt *f);
 int          __fmtcpy(Fmt *f, const void *vm, int n, int sz);
 void*        __fmtdispatch(Fmt *f, void *fmt, int isrunes);
 void *       __fmtflush(Fmt *f, void *t, int len);
-void         __fmtlock(void);
 int          __fmtpad(Fmt *f, int n);
 double       __fmtpow10(int n);
 int          __fmtrcpy(Fmt *f, const void *vm, int n);
+void         __fmtlock(void);
 void         __fmtunlock(void);
 int          __ifmt(Fmt *f);
 int          __isInf(double d, int sign);
@@ -116,4 +102,3 @@ int          __strfmt(Fmt *f);
 #	define VA_COPY(a,b) (a) = (b)
 #	define VA_END(a)
 #endif
-
