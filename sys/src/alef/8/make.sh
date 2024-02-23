@@ -16,8 +16,8 @@ run()
 	"$@" || exit 1
 }
 
-CFLAGS="-I../../../../386/include -I../../../include -I../../cmd/8l -I../port -I. -ggdb -O0 -fno-inline"
-LDFLAGS="-L../../../lib -lbio -l9 -lm -static -fcommon"
+CFLAGS="-m32 -I../../../../386/include -I../../../include -I../../cmd/8l -I../port -I. -ggdb -O0 -fno-inline"
+LDFLAGS="-L../../../lib -lbio -l9 -lm -static"
 
 # TODO(anton2920): silence warnings for later.
 CFLAGS="$CFLAGS -Wno-gnu-designator -Wno-implicit-int -Wno-incompatible-function-pointer-types -Wno-parentheses -Wno-switch-bool -Wno-comment -Wno-implicit-const-int-float-conversion -Wno-incompatible-pointer-types"
@@ -32,7 +32,7 @@ case $1 in
 			run cc -c $CFLAGS $file
 		done
 
-		run cc -o $PROJECT *.o $LDFLAGS
+		run cc -o $PROJECT -m32 *.o $LDFLAGS
 		run mkdir -p ../../../../386/bin
 		run cp $PROJECT ../../../../386/bin
 		;;

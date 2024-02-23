@@ -34,10 +34,9 @@ targets()
 {
 	target sys/src/lib9 $1
 	target sys/src/libbio $1
-	# target sys/src/libmach $1
 	target sys/src/cmd/8l $1
 	target sys/src/cmd/8a $1
-	# target sys/src/alef/8 $1
+	target sys/src/alef/8 $1
 }
 
 STARTTIME=`date +%s`
@@ -48,9 +47,7 @@ case $1 in
 		;;
 	clean)
 		targets $1
-
-		run rm -rf sys/lib
-		run rm -rf 386/bin
+		run rm -rf 386/bin 386/lib sys/lib
 		;;
 	*)
 		echo "Target is not supported!"

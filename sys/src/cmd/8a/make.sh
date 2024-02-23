@@ -38,7 +38,7 @@ case $1 in
 		run cp $PROJECT ../../../../386/bin
 		;;
 	clean)
-		run rm -f *.o $PROJECT
+		run rm -f *.o y.tab.[ch] y.output $PROJECT
 		;;
 	*)
 		echo "Target is not supported!"
