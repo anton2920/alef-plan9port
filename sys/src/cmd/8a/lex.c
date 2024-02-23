@@ -1,71 +1,20 @@
-// Inferno utils/8a/lex.c
-// http://code.google.com/p/inferno-os/source/browse/utils/8a/lex.c
-//
-//	Copyright © 1994-1999 Lucent Technologies Inc.	All rights reserved.
-//	Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
-//	Portions Copyright © 1997-1999 Vita Nuova Limited
-//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
-//	Portions Copyright © 2004,2006 Bruce Ellis
-//	Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
-//	Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
-//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
+#include <ctype.h>
 #define	EXTERN
 #include "a.h"
 #include "y.tab.h"
-#include <ctype.h>
-
-enum
-{
-	Plan9	= 1<<0,
-	Unix	= 1<<1,
-	Windows	= 1<<2,
-};
-
-int
-systemtype(int sys)
-{
-	return sys&Plan9;
-}
-
-int
-pathchar(void)
-{
-	return '/';
-}
 
 void
 main(int argc, char *argv[])
 {
 	char *p;
-	int nout, nproc, i, c;
+	int nout, nproc, status, i, c;
 
 	thechar = '8';
 	thestring = "386";
-
-	ensuresymb(NSYMB);
 	memset(debug, 0, sizeof(debug));
 	cinit();
 	outfile = 0;
-	setinclude(".");
+	include[ninclude++] = ".";
 	ARGBEGIN {
 	default:
 		c = ARGC();
@@ -79,12 +28,8 @@ main(int argc, char *argv[])
 
 	case 'D':
 		p = ARGF();
-		if(p) {
-			if (nDlist%8 == 0)
-				Dlist = allocn(Dlist, nDlist*sizeof(char *), 
-					8*sizeof(char *));
+		if(p)
 			Dlist[nDlist++] = p;
-		}
 		break;
 
 	case 'I':
@@ -107,13 +52,16 @@ main(int argc, char *argv[])
 		c = 0;
 		nout = 0;
 		for(;;) {
-			Waitmsg *w;
-
 			while(nout < nproc && argc > 0) {
-				i = fork();
+				i = myfork();
 				if(i < 0) {
-					fprint(2, "fork: %r\n");
-					errorexit();
+					i = mywait(&status);
+					if(i < 0)
+						errorexit();
+					if(status)
+						c++;
+					nout--;
+					continue;
 				}
 				if(i == 0) {
 					print("%s:\n", *argv);
@@ -125,13 +73,13 @@ main(int argc, char *argv[])
 				argc--;
 				argv++;
 			}
-			w = wait();
-			if(w == nil) {
+			i = mywait(&status);
+			if(i < 0) {
 				if(c)
 					errorexit();
 				exits(0);
 			}
-			if(w->msg[0])
+			if(status)
 				c++;
 			nout--;
 		}
@@ -144,10 +92,9 @@ main(int argc, char *argv[])
 int
 assemble(char *file)
 {
-	char *ofile, incfile[20], *p;
+	char ofile[100], incfile[20], *p;
 	int i, of;
 
-	ofile = alloc(strlen(file)+3); // +3 for .x\0 (x=thechar)
 	strcpy(ofile, file);
 	p = utfrrune(ofile, pathchar());
 	if(p) {
@@ -179,7 +126,7 @@ assemble(char *file)
 		}
 	}
 
-	of = create(outfile, OWRITE, 0664);
+	of = mycreat(outfile, 0664);
 	if(of < 0) {
 		yyerror("%ca: cannot create %s", thechar, outfile);
 		errorexit();
@@ -188,9 +135,6 @@ assemble(char *file)
 
 	pass = 1;
 	pinit(file);
-
-	Bprint(&obuf, "%s\n", thestring);
-
 	for(i=0; i<nDlist; i++)
 		dodefine(Dlist[i]);
 	yyparse();
@@ -198,8 +142,6 @@ assemble(char *file)
 		cclean();
 		return nerrors;
 	}
-
-	Bprint(&obuf, "\n!\n");
 
 	pass = 2;
 	outhist();
@@ -351,9 +293,9 @@ struct
 	"IDIVB",	LTYPE2,	AIDIVB,
 	"IDIVL",	LTYPE2,	AIDIVL,
 	"IDIVW",	LTYPE2,	AIDIVW,
-	"IMULB",	LTYPE2,	AIMULB,
-	"IMULL",	LTYPE2,	AIMULL,
-	"IMULW",	LTYPE2,	AIMULW,
+	"IMULB",	LTYPEI,	AIMULB,
+	"IMULL",	LTYPEI,	AIMULL,
+	"IMULW",	LTYPEI,	AIMULW,
 	"INB",		LTYPE0,	AINB,
 	"INL",		LTYPE0,	AINL,
 	"INW",		LTYPE0,	AINW,
@@ -732,9 +674,9 @@ cinit(void)
 	}
 
 	pathname = allocn(pathname, 0, 100);
-	if(getwd(pathname, 99) == 0) {
+	if(mygetwd(pathname, 99) == 0) {
 		pathname = allocn(pathname, 100, 900);
-		if(getwd(pathname, 999) == 0)
+		if(mygetwd(pathname, 999) == 0)
 			strcpy(pathname, "/???");
 	}
 }
@@ -790,7 +732,7 @@ zname(char *n, int t, int s)
 void
 zaddr(Gen *a, int s)
 {
-	int32 l;
+	long l;
 	int i, t;
 	char *n;
 	Ieee e;
@@ -925,10 +867,10 @@ jackpot:
 	}
 	Bputc(&obuf, a);
 	Bputc(&obuf, a>>8);
-	Bputc(&obuf, stmtline);
-	Bputc(&obuf, stmtline>>8);
-	Bputc(&obuf, stmtline>>16);
-	Bputc(&obuf, stmtline>>24);
+	Bputc(&obuf, lineno);
+	Bputc(&obuf, lineno>>8);
+	Bputc(&obuf, lineno>>16);
+	Bputc(&obuf, lineno>>24);
 	zaddr(&g2->from, sf);
 	zaddr(&g2->to, st);
 
@@ -1007,5 +949,6 @@ outhist(void)
 	}
 }
 
-#include "../cc/lexbody"
-#include "../cc/macbody"
+#include "lexbody"
+#include "macbody"
+#include "compat"

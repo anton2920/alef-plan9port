@@ -1,33 +1,3 @@
-// Inferno utils/8l/optab.c
-// http://code.google.com/p/inferno-os/source/browse/utils/8l/optab.c
-//
-//	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
-//	Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
-//	Portions Copyright © 1997-1999 Vita Nuova Limited
-//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
-//	Portions Copyright © 2004,2006 Bruce Ellis
-//	Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
-//	Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
-//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
 #include	"l.h"
 
 uchar	ynone[] =
@@ -173,11 +143,6 @@ uchar	yml_rl[] =
 	Yml,	Yrl,	Zm_r,	1,
 	0
 };
-uchar	yrb_mb[] =
-{
-	Yrb,	Ymb,	Zr_m,	1,
-	0
-};
 uchar	yrl_ml[] =
 {
 	Yrl,	Yml,	Zr_m,	1,
@@ -260,15 +225,13 @@ uchar	yloop[] =
 uchar	ycall[] =
 {
 	Ynone,	Yml,	Zo_m,	2,
-	Ynone,	Ybr,	Zcall,	0,
-	Ynone,	Yi32,	Zcallcon,	1,
+	Ynone,	Ybr,	Zcall,	1,
 	0
 };
 uchar	yjmp[] =
 {
 	Ynone,	Yml,	Zo_m,	2,
-	Ynone,	Ybr,	Zjmp,	0,
-	Ynone,	Yi32,	Zjmpcon,	1,
+	Ynone,	Ybr,	Zjmp,	1,
 	0
 };
 
@@ -300,11 +263,6 @@ uchar	yfmvx[] =
 uchar	yfmvp[] =
 {
 	Yf0,	Ym,	Zo_m,	2,
-	0
-};
-uchar	yfcmv[] =
-{
-	Yrf,	Yf0,	Zm_o,	2,
 	0
 };
 uchar	yfadd[] =
@@ -607,17 +565,13 @@ Optab optab[] =
 	{ AFCOMDPP,	ycompp,	Px, 0xde,(03) },
 	{ AFCOMF,	yfmvx,	Px, 0xd8,(02) },
 	{ AFCOMFP,	yfmvx,	Px, 0xd8,(03) },
-	{ AFCOMI,	yfmvx,	Px, 0xdb,(06) },
-	{ AFCOMIP,	yfmvx,	Px, 0xdf,(06) },
 	{ AFCOML,	yfmvx,	Px, 0xda,(02) },
 	{ AFCOMLP,	yfmvx,	Px, 0xda,(03) },
 	{ AFCOMW,	yfmvx,	Px, 0xde,(02) },
 	{ AFCOMWP,	yfmvx,	Px, 0xde,(03) },
 
 	{ AFUCOM,	ycompp,	Px, 0xdd,(04) },
-	{ AFUCOMI,	ycompp,	Px, 0xdb,(05) },
-	{ AFUCOMIP,	ycompp,	Px, 0xdf,(05) },
-	{ AFUCOMP,	ycompp,	Px, 0xdd,(05) },
+	{ AFUCOMP,	ycompp, Px, 0xdd,(05) },
 	{ AFUCOMPP,	ycompp,	Px, 0xda,(13) },
 
 	{ AFADDDP,	yfaddp,	Px, 0xde,(00) },
@@ -696,54 +650,5 @@ Optab optab[] =
 	{ AFYL2X,	ynone,	Px, 0xd9, 0xf1 },
 	{ AFYL2XP1,	ynone,	Px, 0xd9, 0xf9 },
 	{ AEND },
-	{ ADYNT },
-	{ AINIT },
-	{ ASIGNAME },
-	{ ACMPXCHGB,	yrb_mb,	Pm, 0xb0 },
-	{ ACMPXCHGL,	yrl_ml,	Pm, 0xb1 },
-	{ ACMPXCHGW,	yrl_ml,	Pm, 0xb1 },
-
-	{ ACMOVLCC,	yml_rl,	Pm, 0x43 },
-	{ ACMOVLCS,	yml_rl,	Pm, 0x42 },
-	{ ACMOVLEQ,	yml_rl,	Pm, 0x44 },
-	{ ACMOVLGE,	yml_rl,	Pm, 0x4d },
-	{ ACMOVLGT,	yml_rl,	Pm, 0x4f },
-	{ ACMOVLHI,	yml_rl,	Pm, 0x47 },
-	{ ACMOVLLE,	yml_rl,	Pm, 0x4e },
-	{ ACMOVLLS,	yml_rl,	Pm, 0x46 },
-	{ ACMOVLLT,	yml_rl,	Pm, 0x4c },
-	{ ACMOVLMI,	yml_rl,	Pm, 0x48 },
-	{ ACMOVLNE,	yml_rl,	Pm, 0x45 },
-	{ ACMOVLOC,	yml_rl,	Pm, 0x41 },
-	{ ACMOVLOS,	yml_rl,	Pm, 0x40 },
-	{ ACMOVLPC,	yml_rl,	Pm, 0x4b },
-	{ ACMOVLPL,	yml_rl,	Pm, 0x49 },
-	{ ACMOVLPS,	yml_rl,	Pm, 0x4a },
-	{ ACMOVWCC,	yml_rl,	Pq, 0x43 },
-	{ ACMOVWCS,	yml_rl,	Pq, 0x42 },
-	{ ACMOVWEQ,	yml_rl,	Pq, 0x44 },
-	{ ACMOVWGE,	yml_rl,	Pq, 0x4d },
-	{ ACMOVWGT,	yml_rl,	Pq, 0x4f },
-	{ ACMOVWHI,	yml_rl,	Pq, 0x47 },
-	{ ACMOVWLE,	yml_rl,	Pq, 0x4e },
-	{ ACMOVWLS,	yml_rl,	Pq, 0x46 },
-	{ ACMOVWLT,	yml_rl,	Pq, 0x4c },
-	{ ACMOVWMI,	yml_rl,	Pq, 0x48 },
-	{ ACMOVWNE,	yml_rl,	Pq, 0x45 },
-	{ ACMOVWOC,	yml_rl,	Pq, 0x41 },
-	{ ACMOVWOS,	yml_rl,	Pq, 0x40 },
-	{ ACMOVWPC,	yml_rl,	Pq, 0x4b },
-	{ ACMOVWPL,	yml_rl,	Pq, 0x49 },
-	{ ACMOVWPS,	yml_rl,	Pq, 0x4a },
-
-	{ AFCMOVCC,	yfcmv,	Px, 0xdb,(00) },
-	{ AFCMOVCS,	yfcmv,	Px, 0xda,(00) },
-	{ AFCMOVEQ,	yfcmv,	Px, 0xda,(01) },
-	{ AFCMOVHI,	yfcmv,	Px, 0xdb,(02) },
-	{ AFCMOVLS,	yfcmv,	Px, 0xda,(02) },
-	{ AFCMOVNE,	yfcmv,	Px, 0xdb,(01) },
-	{ AFCMOVNU,	yfcmv,	Px, 0xdb,(03) },
-	{ AFCMOVUN,	yfcmv,	Px, 0xda,(03) },
-
 	0
 };

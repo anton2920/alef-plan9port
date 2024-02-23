@@ -47,7 +47,6 @@ extern "C" {
 #endif
 #if defined(__FreeBSD__)
 #	include <sys/cdefs.h>
-#	include <sys/times.h>
 	/* for strtoll */
 #	undef __ISO_C_VISIBLE
 #	define __ISO_C_VISIBLE 1999

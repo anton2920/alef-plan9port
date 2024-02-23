@@ -1,42 +1,4 @@
-// Inferno utils/8l/pass.c
-// http://code.google.com/p/inferno-os/source/browse/utils/8l/pass.c
-//
-//	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
-//	Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
-//	Portions Copyright © 1997-1999 Vita Nuova Limited
-//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
-//	Portions Copyright © 2004,2006 Bruce Ellis
-//	Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
-//	Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
-//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
 #include	"l.h"
-#include	"../ld/lib.h"
-
-// see ../../pkg/runtime/proc.c:/StackGuard
-enum
-{
-	StackSmall = 128,
-	StackBig = 4096,
-};
 
 void
 dodata(void)
@@ -44,64 +6,39 @@ dodata(void)
 	int i;
 	Sym *s;
 	Prog *p;
-	int32 t, u;
-	Section *sect;
+	long t, u;
 
 	if(debug['v'])
 		Bprint(&bso, "%5.2f dodata\n", cputime());
 	Bflush(&bso);
-
-	segdata.rwx = 06;
-	segdata.vaddr = 0;	/* span will += INITDAT */
-
 	for(p = datap; p != P; p = p->link) {
 		s = p->from.sym;
 		if(p->as == ADYNT || p->as == AINIT)
 			s->value = dtype;
 		if(s->type == SBSS)
 			s->type = SDATA;
-		if(s->type != SDATA && s->type != SELFDATA && s->type != SRODATA)
+		if(s->type != SDATA)
 			diag("initialize non-data (%d): %s\n%P",
 				s->type, s->name, p);
 		t = p->from.offset + p->width;
-		if(t > s->size)
+		if(t > s->value)
 			diag("initialize bounds (%ld): %s\n%P",
-				s->size, s->name, p);
+				s->value, s->name, p);
 	}
-
-	/* allocate elf guys - must be segregated from real data */
+	/* allocate small guys */
 	datsize = 0;
 	for(i=0; i<NHASH; i++)
 	for(s = hash[i]; s != S; s = s->link) {
-		if(!s->reachable)
-			continue;
-		if(s->type != SELFDATA)
-			continue;
-		t = rnd(s->size, 4);
-		s->size = t;
-		s->value = datsize;
-		datsize += t;
-	}
-	elfdatsize = datsize;
-
-	sect = addsection(&segdata, ".data", 06);
-	sect->vaddr = datsize;
-
-	/* allocate small guys */
-	for(i=0; i<NHASH; i++)
-	for(s = hash[i]; s != S; s = s->link) {
-		if(!s->reachable)
-			continue;
 		if(s->type != SDATA)
 		if(s->type != SBSS)
 			continue;
-		t = s->size;
-		if(t == 0 && s->name[0] != '.') {
+		t = s->value;
+		if(t == 0) {
 			diag("%s: no size", s->name);
 			t = 1;
 		}
-		t = rnd(t, 4);
-		s->size = t;
+		t = rnd(t, 4);;
+		s->value = t;
 		if(t > MINSIZ)
 			continue;
 		s->value = datsize;
@@ -117,7 +54,7 @@ dodata(void)
 				s->type = SDATA;
 			continue;
 		}
-		t = s->size;
+		t = s->value;
 		s->value = datsize;
 		datsize += t;
 	}
@@ -131,15 +68,12 @@ dodata(void)
 		u -= datsize;
 		for(i=0; i<NHASH; i++)
 		for(s = hash[i]; s != S; s = s->link) {
-			if(!s->reachable)
-				continue;
 			if(s->type != SBSS)
 				continue;
 			t = s->value;
 			if(t > u)
 				continue;
 			u -= t;
-			s->size = t;
 			s->value = datsize;
 			s->type = SDATA;
 			datsize += t;
@@ -147,39 +81,20 @@ dodata(void)
 		datsize += u;
 	}
 
-	if(dynptrsize > 0) {
-		/* dynamic pointer section between data and bss */
-		datsize = rnd(datsize, 4);
-	}
-	sect->len = datsize - sect->vaddr;
-
 	/* now the bss */
-	sect = addsection(&segdata, ".bss", 06);
-	sect->vaddr = datsize;
 	bsssize = 0;
 	for(i=0; i<NHASH; i++)
 	for(s = hash[i]; s != S; s = s->link) {
-		if(!s->reachable)
-			continue;
 		if(s->type != SBSS)
 			continue;
-		t = s->size;
-		s->value = bsssize + dynptrsize + datsize;
+		t = s->value;
+		s->value = bsssize + datsize;
 		bsssize += t;
 	}
-	sect->len = bsssize;
-
-	segdata.len = datsize+bsssize;
-	segdata.filelen = datsize;
-
-	xdefine("data", SBSS, 0);
+	xdefine("bdata", SDATA, 0L);
 	xdefine("edata", SBSS, datsize);
-	xdefine("end", SBSS, dynptrsize + bsssize + datsize);
-
-	if(debug['s'] || HEADTYPE == 8)
-		xdefine("symdat", SFIXED, 0);
-	else
-		xdefine("symdat", SFIXED, SYMDATVA);
+	xdefine("end", SBSS, bsssize + datsize);
+	/* etext is defined in span.c */
 }
 
 Prog*
@@ -221,12 +136,8 @@ loop:
 		return;
 	if(p->as == ATEXT)
 		curtext = p;
-	if(!curtext->from.sym->reachable) {
-		p = p->pcond;
-		goto loop;
-	}
 	if(p->as == AJMP)
-	if((q = p->pcond) != P && q->as != ATEXT) {
+	if((q = p->pcond) != P) {
 		p->mark = 1;
 		p = q;
 		if(p->mark == 0)
@@ -306,7 +217,7 @@ loop:
 	if(a != ACALL) {
 		q = brchain(p->link);
 		if(q != P && q->mark)
-		if(a != ALOOP && a != ATEXT) {
+		if(a != ALOOP) {
 			p->as = relinv(a);
 			p->link = p->pcond;
 			p->pcond = q;
@@ -375,10 +286,10 @@ doinit(void)
 void
 patch(void)
 {
-	int32 c;
+	long c;
 	Prog *p, *q;
 	Sym *s;
-	int32 vexit;
+	long vexit;
 
 	if(debug['v'])
 		Bprint(&bso, "%5.2f mkfwd\n", cputime());
@@ -390,99 +301,61 @@ patch(void)
 	s = lookup("exit", 0);
 	vexit = s->value;
 	for(p = firstp; p != P; p = p->link) {
-			if(HEADTYPE == 10) {	// Windows
-				// Convert
-				//   op	  n(GS), reg
-				// to
-				//   MOVL 0x2C(FS), reg
-				//   op	  n(reg), reg
-				// The purpose of this patch is to fix some accesses
-				// to extern register variables (TLS) on Windows, as
-				// a different method is used to access them.
-				if(p->from.type == D_INDIR+D_GS
-				&& p->to.type >= D_AX && p->to.type <= D_DI) {
-					q = appendp(p);
-					q->from = p->from;
-					q->from.type = D_INDIR + p->to.type;
-					q->to = p->to;
-					q->as = p->as;
-					p->as = AMOVL;
-					p->from.type = D_INDIR+D_FS;
-					p->from.offset = 0x2C;
-				}
-			}
-			if(HEADTYPE == 7) {	// Linux
-				// Running binaries under Xen requires using
-				//	MOVL 0(GS), reg
-				// and then off(reg) instead of saying off(GS) directly
-				// when the offset is negative.
-				if(p->from.type == D_INDIR+D_GS && p->from.offset < 0
-				&& p->to.type >= D_AX && p->to.type <= D_DI) {
-					q = appendp(p);
-					q->from = p->from;
-					q->from.type = D_INDIR + p->to.type;
-					q->to = p->to;
-					q->as = p->as;
-					p->as = AMOVL;
-					p->from.type = D_INDIR+D_GS;
-					p->from.offset = 0;
-				}
-			}
-			if(p->as == ATEXT)
-				curtext = p;
-			if(p->as == ACALL || (p->as == AJMP && p->to.type != D_BRANCH)) {
-				s = p->to.sym;
-				if(s) {
-					if(debug['c'])
-						Bprint(&bso, "%s calls %s\n", TNAME, s->name);
-					switch(s->type) {
-					default:
-						/* diag prints TNAME first */
-						diag("undefined: %s", s->name);
-						s->type = STEXT;
-						s->value = vexit;
-						continue;	// avoid more error messages
-					case STEXT:
-						p->to.offset = s->value;
-						break;
-					case SUNDEF:
-						p->pcond = UP;
-						p->to.offset = 0;
-						break;
-					}
-					p->to.type = D_BRANCH;
-				}
-			}
-			if(p->to.type != D_BRANCH || p->pcond == UP)
-				continue;
-			c = p->to.offset;
-			for(q = firstp; q != P;) {
-				if(q->forwd != P)
-				if(c >= q->forwd->pc) {
-					q = q->forwd;
-					continue;
-				}
-				if(c == q->pc)
+		if(p->as == ATEXT)
+			curtext = p;
+		if(p->as == ACALL || p->as == ARET) {
+			s = p->to.sym;
+			if(s) {
+				if(debug['c'])
+					Bprint(&bso, "%s calls %s\n", TNAME, s->name);
+				switch(s->type) {
+				default:
+					/* diag prints TNAME first */
+					diag("undefined: %s", s->name);
+					s->type = STEXT;
+					s->value = vexit;
+					break;	/* or fall through to set offset? */
+				case STEXT:
+					p->to.offset = s->value;
 					break;
-				q = q->link;
+				case SUNDEF:
+					p->pcond = UP;
+					p->to.offset = 0;
+					break;
+				}
+				p->to.type = D_BRANCH;
 			}
-			if(q == P) {
-				diag("branch out of range in %s\n%P", TNAME, p);
-				p->to.type = D_NONE;
+		}
+		if(p->to.type != D_BRANCH || p->pcond == UP)
+			continue;
+		c = p->to.offset;
+		for(q = firstp; q != P;) {
+			if(q->forwd != P)
+			if(c >= q->forwd->pc) {
+				q = q->forwd;
+				continue;
 			}
-			p->pcond = q;
+			if(c == q->pc)
+				break;
+			q = q->link;
+		}
+		if(q == P) {
+			diag("branch out of range in %s\n%P", TNAME, p);
+			p->to.type = D_NONE;
+		}
+		p->pcond = q;
 	}
 
 	for(p = firstp; p != P; p = p->link) {
-			if(p->as == ATEXT)
-				curtext = p;
-			p->mark = 0;	/* initialization for follow */
-			if(p->pcond != P && p->pcond != UP) {
-				p->pcond = brloop(p->pcond);
-				if(p->pcond != P)
-				if(p->to.type == D_BRANCH)
-					p->to.offset = p->pcond->pc;
-			}
+		if(p->as == ATEXT)
+			curtext = p;
+		p->mark = 0;	/* initialization for follow */
+		if(p->pcond != P && p->pcond != UP) {
+			p->pcond = brloop(p->pcond);
+			if(p->pcond != P)
+			if(p->to.type == D_BRANCH)
+				p->to.offset = p->pcond->pc;
+		}
 	}
 }
 
@@ -492,7 +365,7 @@ mkfwd(void)
 {
 	Prog *p;
 	int i;
-	int32 dwn[LOG], cnt[LOG];
+	long dwn[LOG], cnt[LOG];
 	Prog *lst[LOG];
 
 	for(i=0; i<LOG; i++) {
@@ -540,27 +413,9 @@ brloop(Prog *p)
 void
 dostkoff(void)
 {
-	Prog *p, *q, *q1;
-	int32 autoffset, deltasp;
+	Prog *p, *q;
+	long autoffset, deltasp;
 	int a, f, curframe, curbecome, maxbecome;
-	Prog *pmorestack;
-	Sym *symmorestack;
-
-	pmorestack = P;
-	symmorestack = lookup("runtime.morestack", 0);
-
-	if(symmorestack->type == STEXT)
-	for(p = firstp; p != P; p = p->link) {
-		if(p->as == ATEXT) {
-			if(p->from.sym == symmorestack) {
-				pmorestack = p;
-				p->from.scale |= NOSPLIT;
-				break;
-			}
-		}
-	}
-	if(pmorestack == P)
-		diag("runtime.morestack not defined");
 
 	curframe = 0;
 	curbecome = 0;
@@ -635,219 +490,88 @@ dostkoff(void)
 	deltasp = 0;
 	for(p = firstp; p != P; p = p->link) {
 		if(p->as == ATEXT) {
-		curtext = p;
-		autoffset = p->to.offset;
-		if(autoffset < 0)
-			autoffset = 0;
-
-		q = P;
-		q1 = P;
-		if(pmorestack != P)
-		if(!(p->from.scale & NOSPLIT)) {
-			p = appendp(p);	// load g into CX
-			switch(HEADTYPE) {
-			case 10:	// Windows
-				p->as = AMOVL;
-				p->from.type = D_INDIR+D_FS;
-				p->from.offset = 0x2c;
-				p->to.type = D_CX;
-
+			curtext = p;
+			autoffset = p->to.offset;
+			if(autoffset < 0)
+				autoffset = 0;
+			if(autoffset) {
 				p = appendp(p);
-				p->as = AMOVL;
-				p->from.type = D_INDIR+D_CX;
-				p->from.offset = 0;
-				p->to.type = D_CX;
-				break;
-			
-			case 7:	// Linux
-				p->as = AMOVL;
-				p->from.type = D_INDIR+D_GS;
-				p->from.offset = 0;
-				p->to.type = D_CX;
-
-				p = appendp(p);
-				p->as = AMOVL;
-				p->from.type = D_INDIR+D_CX;
-				p->from.offset = tlsoffset + 0;
-				p->to.type = D_CX;
-				break;
-
-			default:
-				p->as = AMOVL;
-				p->from.type = D_INDIR+D_GS;
-				p->from.offset = tlsoffset + 0;
-				p->to.type = D_CX;
-			}
-
-			if(debug['K']) {
-				// 8l -K means check not only for stack
-				// overflow but stack underflow.
-				// On underflow, INT 3 (breakpoint).
-				// Underflow itself is rare but this also
-				// catches out-of-sync stack guard info.
-				p = appendp(p);
-				p->as = ACMPL;
-				p->from.type = D_INDIR+D_CX;
-				p->from.offset = 4;
-				p->to.type = D_SP;
-
-				p = appendp(p);
-				p->as = AJCC;
-				p->to.type = D_BRANCH;
-				p->to.offset = 4;
-				q1 = p;
-
-				p = appendp(p);
-				p->as = AINT;
+				p->as = AADJSP;
 				p->from.type = D_CONST;
-				p->from.offset = 3;
-				
-				p = appendp(p);
-				p->as = ANOP;
-				q1->pcond = p;
+				p->from.offset = autoffset;
 			}
+			deltasp = autoffset;
+		}
+		a = p->from.type;
+		if(a == D_AUTO)
+			p->from.offset += deltasp;
+		if(a == D_PARAM)
+			p->from.offset += deltasp + 4;
+		a = p->to.type;
+		if(a == D_AUTO)
+			p->to.offset += deltasp;
+		if(a == D_PARAM)
+			p->to.offset += deltasp + 4;
 
-			if(autoffset < StackBig) {  // do we need to call morestack
-				if(autoffset <= StackSmall) {
-					// small stack
-					p = appendp(p);
-					p->as = ACMPL;
-					p->from.type = D_SP;
-					p->to.type = D_INDIR+D_CX;
-				} else {
-					// large stack
-					p = appendp(p);
-					p->as = ALEAL;
-					p->from.type = D_INDIR+D_SP;
-					p->from.offset = -(autoffset-StackSmall);
-					p->to.type = D_AX;
-
-					p = appendp(p);
-					p->as = ACMPL;
-					p->from.type = D_AX;
-					p->to.type = D_INDIR+D_CX;
-				}
-
-				// common
-				p = appendp(p);
-				p->as = AJHI;
-				p->to.type = D_BRANCH;
-				p->to.offset = 4;
-				q = p;
-			}
-
-			p = appendp(p);	// save frame size in DX
-			p->as = AMOVL;
-			p->to.type = D_DX;
-			/* 160 comes from 3 calls (3*8) 4 safes (4*8) and 104 guard */
-			p->from.type = D_CONST;
-			if(autoffset+160 > 4096)
-				p->from.offset = (autoffset+160) & ~7LL;
-
-			p = appendp(p);	// save arg size in AX
-			p->as = AMOVL;
-			p->to.type = D_AX;
-			p->from.type = D_CONST;
-			p->from.offset = curtext->to.offset2;
-
-			p = appendp(p);
-			p->as = ACALL;
-			p->to.type = D_BRANCH;
-			p->pcond = pmorestack;
-			p->to.sym = symmorestack;
-
+		switch(p->as) {
+		default:
+			continue;
+		case APUSHL:
+		case APUSHFL:
+			deltasp += 4;
+			continue;
+		case APUSHW:
+		case APUSHFW:
+			deltasp += 2;
+			continue;
+		case APOPL:
+		case APOPFL:
+			deltasp -= 4;
+			continue;
+		case APOPW:
+		case APOPFW:
+			deltasp -= 2;
+			continue;
+		case ARET:
+			break;
 		}
 
-		if(q != P)
-			q->pcond = p->link;
+		if(autoffset != deltasp)
+			diag("unbalanced PUSH/POP");
+		if(p->from.type == D_CONST)
+			goto become;
 
 		if(autoffset) {
-			p = appendp(p);
-			p->as = AADJSP;
-			p->from.type = D_CONST;
-			p->from.offset = autoffset;
-			p->spadj = autoffset;
-			if(q != P)
-				q->pcond = p;
-		}
-		deltasp = autoffset;
-		}
-			a = p->from.type;
-			if(a == D_AUTO)
-				p->from.offset += deltasp;
-			if(a == D_PARAM)
-				p->from.offset += deltasp + 4;
-			a = p->to.type;
-			if(a == D_AUTO)
-				p->to.offset += deltasp;
-			if(a == D_PARAM)
-				p->to.offset += deltasp + 4;
-	
-			switch(p->as) {
-			default:
-				continue;
-			case APUSHL:
-			case APUSHFL:
-				deltasp += 4;
-				p->spadj = 4;
-				continue;
-			case APUSHW:
-			case APUSHFW:
-				deltasp += 2;
-				p->spadj = 2;
-				continue;
-			case APOPL:
-			case APOPFL:
-				deltasp -= 4;
-				p->spadj = -4;
-				continue;
-			case APOPW:
-			case APOPFW:
-				deltasp -= 2;
-				p->spadj = -2;
-				continue;
-			case ARET:
-				break;
-			}
-	
-			if(autoffset != deltasp)
-				diag("unbalanced PUSH/POP");
-			if(p->from.type == D_CONST)
-				goto become;
-	
-			if(autoffset) {
-				q = p;
-				p = appendp(p);
-				p->as = ARET;
-	
-				q->as = AADJSP;
-				q->from.type = D_CONST;
-				q->from.offset = -autoffset;
-				p->spadj = -autoffset;
-			}
-			continue;
-	
-		become:
 			q = p;
 			p = appendp(p);
-			p->as = AJMP;
-			p->to = q->to;
-			p->pcond = q->pcond;
-	
+			p->as = ARET;
+
 			q->as = AADJSP;
-			q->from = zprg.from;
 			q->from.type = D_CONST;
 			q->from.offset = -autoffset;
-			p->spadj = -autoffset;
-			q->to = zprg.to;
-			continue;
+		}
+		continue;
+
+	become:
+		q = p;
+		p = appendp(p);
+		p->as = AJMP;
+		p->to = q->to;
+		p->pcond = q->pcond;
+
+		q->as = AADJSP;
+		q->from = zprg.from;
+		q->from.type = D_CONST;
+		q->from.offset = -autoffset;
+		q->to = zprg.to;
+		continue;
 	}
 }
 
-int32
+long
 atolwhex(char *s)
 {
-	int32 n;
+	long n;
 	int f;
 
 	n = 0;
@@ -908,20 +632,21 @@ import(void)
 				if(s->value != 0)
 					diag("value != 0 on SXREF");
 				undefsym(s);
-				Bprint(&bso, "IMPORT: %s sig=%lux v=%ld\n", s->name, s->sig, s->value);
+				if(debug['X'])
+					Bprint(&bso, "IMPORT: %s sig=%lux v=%ld\n", s->name, s->sig, s->value);
 				if(debug['S'])
 					s->sig = 0;
 			}
 }
 
 void
-ckoff(Sym *s, int32 v)
+ckoff(Sym *s, long v)
 {
 	if(v < 0 || v >= 1<<Roffset)
 		diag("relocation offset %ld for %s out of range", v, s->name);
 }
 
-Prog*
+static Prog*
 newdata(Sym *s, int o, int w, int t)
 {
 	Prog *p;
@@ -939,30 +664,6 @@ newdata(Sym *s, int o, int w, int t)
 	p->from.sym = s;
 	p->from.offset = o;
 	p->to.type = D_CONST;
-	p->dlink = s->data;
-	s->data = p;
-	return p;
-}
-
-Prog*
-newtext(Prog *p, Sym *s)
-{
-	if(p == P) {
-		p = prg();
-		p->as = ATEXT;
-		p->from.sym = s;
-	}
-	s->type = STEXT;
-	s->text = p;
-	s->value = pc;
-	lastp->link = p;
-	lastp = p;
-	p->pc = pc++;
-	if(textp == P)
-		textp = p;
-	else
-		etextp->pcond = p;
-	etextp = p;
 	return p;
 }
 
@@ -977,14 +678,14 @@ export(void)
 	n = 0;
 	for(i = 0; i < NHASH; i++)
 		for(s = hash[i]; s != S; s = s->link)
-			if(s->sig != 0 && s->type != SXREF && s->type != SUNDEF && (nexports == 0 || s->subtype == SEXPORT))
+			if(s->type != SXREF && s->type != SUNDEF && (nexports == 0 && s->sig != 0 || s->subtype == SEXPORT || allexport))
 				n++;
-	esyms = mal(n*sizeof(Sym*));
+	esyms = malloc(n*sizeof(Sym*));
 	ne = n;
 	n = 0;
 	for(i = 0; i < NHASH; i++)
 		for(s = hash[i]; s != S; s = s->link)
-			if(s->sig != 0 && s->type != SXREF && s->type != SUNDEF && (nexports == 0 || s->subtype == SEXPORT))
+			if(s->type != SXREF && s->type != SUNDEF && (nexports == 0 && s->sig != 0 || s->subtype == SEXPORT || allexport))
 				esyms[n++] = s;
 	for(i = 0; i < ne-1; i++)
 		for(j = i+1; j < ne; j++)
@@ -1011,13 +712,13 @@ export(void)
 		/* Bprint(&bso, "EXPORT: %s sig=%lux t=%d\n", s->name, s->sig, s->type); */
 
 		/* signature */
-		p = newdata(et, off, sizeof(int32), D_EXTERN);
-		off += sizeof(int32);
+		p = newdata(et, off, sizeof(long), D_EXTERN);
+		off += sizeof(long);
 		p->to.offset = s->sig;
 
 		/* address */
-		p = newdata(et, off, sizeof(int32), D_EXTERN);
-		off += sizeof(int32);
+		p = newdata(et, off, sizeof(long), D_EXTERN);
+		off += sizeof(long);
 		p->to.type = D_ADDR;
 		p->to.index = D_EXTERN;
 		p->to.sym = s;
@@ -1039,8 +740,8 @@ export(void)
 		}
 
 		/* name */
-		p = newdata(et, off, sizeof(int32), D_EXTERN);
-		off += sizeof(int32);
+		p = newdata(et, off, sizeof(long), D_EXTERN);
+		off += sizeof(long);
 		p->to.type = D_ADDR;
 		p->to.index = D_STATIC;
 		p->to.sym = str;
@@ -1054,13 +755,13 @@ export(void)
 	}
 
 	for(i = 0; i < 3; i++){
-		newdata(et, off, sizeof(int32), D_EXTERN);
-		off += sizeof(int32);
+		newdata(et, off, sizeof(long), D_EXTERN);
+		off += sizeof(long);
 	}
-	et->size = off;
+	et->value = off;
 	if(sv == 0)
 		sv = 1;
-	str->size = sv;
+	str->value = sv;
 	exports = ne;
 	free(esyms);
 }

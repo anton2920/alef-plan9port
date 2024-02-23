@@ -1,138 +1,90 @@
-// Inferno utils/8l/span.c
-// http://code.google.com/p/inferno-os/source/browse/utils/8l/span.c
-//
-//	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
-//	Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
-//	Portions Copyright © 1997-1999 Vita Nuova Limited
-//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
-//	Portions Copyright © 2004,2006 Bruce Ellis
-//	Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
-//	Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
-//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
 #include	"l.h"
-#include	"../ld/lib.h"
 
 void
 span(void)
 {
 	Prog *p, *q;
-	int32 i, v, c, idat, etext, rodata, erodata;
+	long v, c, idat;
 	int m, n, again;
-	Sym *s;
-	Section *sect;
 
 	xdefine("etext", STEXT, 0L);
-	xdefine("rodata", SRODATA, 0L);
-	xdefine("erodata", SRODATA, 0L);
-
 	idat = INITDAT;
 	for(p = firstp; p != P; p = p->link) {
-			if(p->as == ATEXT)
-				curtext = p;
-			n = 0;
-			if(p->to.type == D_BRANCH)
-				if(p->pcond == P)
-					p->pcond = p;
-			if((q = p->pcond) != P)
-				if(q->back != 2)
-					n = 1;
-			p->back = n;
-			if(p->as == AADJSP) {
-				p->to.type = D_SP;
-				v = -p->from.offset;
+		if(p->as == ATEXT)
+			curtext = p;
+		n = 0;
+		if(p->to.type == D_BRANCH)
+			if(p->pcond == P)
+				p->pcond = p;
+		if((q = p->pcond) != P)
+			if(q->back != 2)
+				n = 1;
+		p->back = n;
+		if(p->as == AADJSP) {
+			p->to.type = D_SP;
+			v = -p->from.offset;
+			p->from.offset = v;
+			p->as = AADDL;
+			if(v < 0) {
+				p->as = ASUBL;
+				v = -v;
 				p->from.offset = v;
-				p->as = AADDL;
-				if(v < 0) {
-					p->as = ASUBL;
-					v = -v;
-					p->from.offset = v;
-				}
-				if(v == 0)
-					p->as = ANOP;
 			}
+			if(v == 0)
+				p->as = ANOP;
+		}
 	}
-
 	n = 0;
-start:
-	do{
-		again = 0;
-		if(debug['v'])
-			Bprint(&bso, "%5.2f span %d\n", cputime(), n);
-		Bflush(&bso);
-		if(n > 50) {
-			print("span must be looping - %d\n", textsize);
-			errorexit();
-		}
-		c = INITTEXT;
-		for(p = firstp; p != P; p = p->link) {
-			if(p->as == ATEXT) {
-				curtext = p;
-				if(HEADTYPE == 8)
-					c = (c+31)&~31;
-			}
-				if(p->to.type == D_BRANCH)
-					if(p->back)
-						p->pc = c;
-				if(n == 0 || HEADTYPE == 8 || p->to.type == D_BRANCH) {
-					if(HEADTYPE == 8)
-						p->pc = c;
-					asmins(p);
-					m = andptr-and;
-					if(p->mark != m)
-						again = 1;
-					p->mark = m;
-				}
-				if(HEADTYPE == 8) {
-					c = p->pc + p->mark;
-				} else {
-					p->pc = c;
-					c += p->mark;
-				}
-		}
-		textsize = c;
-		n++;
-	}while(again);
-	etext = c;
-	c += textpad;
-	
-	/*
-	 * allocate read-only data to the text segment.
-	 */
-	if(HEADTYPE == 8)
-		c = rnd(c, INITRND);
-	c = rnd(c, 8);
-	rodata = c;
-	for(i=0; i<NHASH; i++)
-	for(s = hash[i]; s != S; s = s->link) {
-		if(s->type != SRODATA)
-			continue;
-		v = s->size;
-		while(v & 3)
-			v++;
-		s->value = c;
-		c += v;
-	}
-	erodata = c;
 
+start:
+	if(debug['v'])
+		Bprint(&bso, "%5.2f span\n", cputime());
+	Bflush(&bso);
+	c = INITTEXT;
+	for(p = firstp; p != P; p = p->link) {
+		if(p->as == ATEXT)
+			curtext = p;
+		if(p->to.type == D_BRANCH)
+			if(p->back)
+				p->pc = c;
+		asmins(p);
+		p->pc = c;
+		m = andptr-and;
+		p->mark = m;
+		c += m;
+	}
+
+loop:
+	n++;
+	if(debug['v'])
+		Bprint(&bso, "%5.2f span %d\n", cputime(), n);
+	Bflush(&bso);
+	if(n > 50) {
+		print("span must be looping\n");
+		errorexit();
+	}
+	again = 0;
+	c = INITTEXT;
+	for(p = firstp; p != P; p = p->link) {
+		if(p->as == ATEXT)
+			curtext = p;
+		if(p->to.type == D_BRANCH) {
+			if(p->back)
+				p->pc = c;
+			asmins(p);
+			m = andptr-and;
+			if(m != p->mark) {
+				p->mark = m;
+				again++;
+			}
+		}
+		p->pc = c;
+		c += p->mark;
+	}
+	if(again) {
+		textsize = c;
+		goto loop;
+	}
 	if(INITRND) {
 		INITDAT = rnd(c, INITRND);
 		if(INITDAT != idat) {
@@ -140,67 +92,33 @@ start:
 			goto start;
 		}
 	}
-
-	xdefine("etext", STEXT, etext);
-	xdefine("rodata", SRODATA, rodata);
-	xdefine("erodata", SRODATA, erodata);
-
+	xdefine("etext", STEXT, c);
 	if(debug['v'])
 		Bprint(&bso, "etext = %lux\n", c);
 	Bflush(&bso);
 	for(p = textp; p != P; p = p->pcond)
 		p->from.sym->value = p->pc;
 	textsize = c - INITTEXT;
-
-	segtext.rwx = 05;
-	if(HEADTYPE == 8) {
-		segtext.vaddr = INITTEXT;
-		segtext.len = rodata - INITTEXT;
-		segtext.fileoff = HEADR;
-		segtext.filelen = etext - INITTEXT;
-
-		segrodata.rwx = 04;
-		segrodata.vaddr = rodata;
-		segrodata.len = erodata - rodata;
-		segrodata.filelen = segrodata.len;
-	} else {
-		segtext.vaddr = INITTEXT - HEADR;
-		segtext.len = INITDAT - INITTEXT + HEADR;
-		segtext.fileoff = 0;
-		segtext.filelen = segtext.len;
-	}
-
-	sect = addsection(&segtext, ".text", 05);
-	sect->vaddr = INITTEXT;
-	sect->len = etext - sect->vaddr;
-	
-	if(HEADTYPE == 8)
-		sect = addsection(&segrodata, ".rodata", 04);
-	else
-		sect = addsection(&segtext, ".rodata", 04);
-	sect->vaddr = rodata;
-	sect->len = erodata - rodata;
-
-	segdata.vaddr += INITDAT;
-	for(sect=segdata.sect; sect!=nil; sect=sect->next)
-		sect->vaddr += INITDAT;
 }
 
 void
-xdefine(char *p, int t, int32 v)
+xdefine(char *p, int t, long v)
 {
 	Sym *s;
 
 	s = lookup(p, 0);
-	s->type = t;
-	s->value = v;
+	if(s->type == 0 || s->type == SXREF) {
+		s->type = t;
+		s->value = v;
+	}
+	if(s->type == STEXT && s->value == 0)
+		s->value = v;
 }
 
 void
-putsymb(char *s, int t, int32 v, int ver, Sym *go)
+putsymb(char *s, int t, long v, int ver)
 {
 	int i, f;
-	vlong gv;
 
 	if(t == 'f')
 		s++;
@@ -224,15 +142,7 @@ putsymb(char *s, int t, int32 v, int ver, Sym *go)
 			cput(s[i]);
 		cput(0);
 	}
-	gv = 0;
-	if(go) {
-		if(!go->reachable)
-			sysfatal("unreachable type %s", go->name);
-		gv = go->value+INITDAT;
-	}
-	lput(gv);
-
-	symsize += 4 + 1 + i+1 + 4;
+	symsize += 4 + 1 + i + 1;
 
 	if(debug['n']) {
 		if(t == 'z' || t == 'Z') {
@@ -245,9 +155,9 @@ putsymb(char *s, int t, int32 v, int ver, Sym *go)
 			return;
 		}
 		if(ver)
-			Bprint(&bso, "%c %.8lux %s<%d> %s (%.8llux)\n", t, v, s, ver, go ? go->name : "", gv);
+			Bprint(&bso, "%c %.8lux %s<%d>\n", t, v, s, ver);
 		else
-			Bprint(&bso, "%c %.8lux %s\n", t, v, s, go ? go->name : "", gv);
+			Bprint(&bso, "%c %.8lux %s\n", t, v, s);
 	}
 }
 
@@ -261,43 +171,25 @@ asmsym(void)
 
 	s = lookup("etext", 0);
 	if(s->type == STEXT)
-		putsymb(s->name, 'T', s->value, s->version, 0);
+		putsymb(s->name, 'T', s->value, s->version);
 
 	for(h=0; h<NHASH; h++)
 		for(s=hash[h]; s!=S; s=s->link)
 			switch(s->type) {
 			case SCONST:
-			case SRODATA:
-				if(!s->reachable)
-					continue;
-				putsymb(s->name, 'D', s->value, s->version, s->gotype);
+				putsymb(s->name, 'D', s->value, s->version);
 				continue;
 
 			case SDATA:
-			case SELFDATA:
-				if(!s->reachable)
-					continue;
-				putsymb(s->name, 'D', s->value+INITDAT, s->version, s->gotype);
-				continue;
-
-			case SMACHO:
-				if(!s->reachable)
-					continue;
-				putsymb(s->name, 'D', s->value+INITDAT+datsize+bsssize, s->version, s->gotype);
+				putsymb(s->name, 'D', s->value+INITDAT, s->version);
 				continue;
 
 			case SBSS:
-				if(!s->reachable)
-					continue;
-				putsymb(s->name, 'B', s->value+INITDAT, s->version, s->gotype);
-				continue;
-
-			case SFIXED:
-				putsymb(s->name, 'B', s->value, s->version, s->gotype);
+				putsymb(s->name, 'B', s->value+INITDAT, s->version);
 				continue;
 
 			case SFILE:
-				putsymb(s->name, 'f', s->value, s->version, 0);
+				putsymb(s->name, 'f', s->value, s->version);
 				continue;
 			}
 
@@ -309,28 +201,105 @@ asmsym(void)
 		/* filenames first */
 		for(a=p->to.autom; a; a=a->link)
 			if(a->type == D_FILE)
-				putsymb(a->asym->name, 'z', a->aoffset, 0, 0);
+				putsymb(a->asym->name, 'z', a->aoffset, 0);
 			else
 			if(a->type == D_FILE1)
-				putsymb(a->asym->name, 'Z', a->aoffset, 0, 0);
+				putsymb(a->asym->name, 'Z', a->aoffset, 0);
 
-		if(!s->reachable)
-			continue;
-
-		putsymb(s->name, 'T', s->value, s->version, s->gotype);
+		putsymb(s->name, 'T', s->value, s->version);
 
 		/* frame, auto and param after */
-		putsymb(".frame", 'm', p->to.offset+4, 0, 0);
+		putsymb(".frame", 'm', p->to.offset+4, 0);
 
 		for(a=p->to.autom; a; a=a->link)
 			if(a->type == D_AUTO)
-				putsymb(a->asym->name, 'a', -a->aoffset, 0, a->gotype);
+				putsymb(a->asym->name, 'a', -a->aoffset, 0);
 			else
 			if(a->type == D_PARAM)
-				putsymb(a->asym->name, 'p', a->aoffset, 0, a->gotype);
+				putsymb(a->asym->name, 'p', a->aoffset, 0);
 	}
 	if(debug['v'] || debug['n'])
 		Bprint(&bso, "symsize = %lud\n", symsize);
+	Bflush(&bso);
+}
+
+void
+asmlc(void)
+{
+	long oldpc, oldlc;
+	Prog *p;
+	long v, s;
+
+	oldpc = INITTEXT;
+	oldlc = 0;
+	for(p = firstp; p != P; p = p->link) {
+		if(p->line == oldlc || p->as == ATEXT || p->as == ANOP) {
+			if(p->as == ATEXT)
+				curtext = p;
+			if(debug['V'])
+				Bprint(&bso, "%6lux %P\n",
+					p->pc, p);
+			continue;
+		}
+		if(debug['V'])
+			Bprint(&bso, "\t\t%6ld", lcsize);
+		v = (p->pc - oldpc) / MINLC;
+		while(v) {
+			s = 127;
+			if(v < 127)
+				s = v;
+			cput(s+128);	/* 129-255 +pc */
+			if(debug['V'])
+				Bprint(&bso, " pc+%ld*%d(%ld)", s, MINLC, s+128);
+			v -= s;
+			lcsize++;
+		}
+		s = p->line - oldlc;
+		oldlc = p->line;
+		oldpc = p->pc + MINLC;
+		if(s > 64 || s < -64) {
+			cput(0);	/* 0 vv +lc */
+			cput(s>>24);
+			cput(s>>16);
+			cput(s>>8);
+			cput(s);
+			if(debug['V']) {
+				if(s > 0)
+					Bprint(&bso, " lc+%ld(%d,%ld)\n",
+						s, 0, s);
+				else
+					Bprint(&bso, " lc%ld(%d,%ld)\n",
+						s, 0, s);
+				Bprint(&bso, "%6lux %P\n",
+					p->pc, p);
+			}
+			lcsize += 5;
+			continue;
+		}
+		if(s > 0) {
+			cput(0+s);	/* 1-64 +lc */
+			if(debug['V']) {
+				Bprint(&bso, " lc+%ld(%ld)\n", s, 0+s);
+				Bprint(&bso, "%6lux %P\n",
+					p->pc, p);
+			}
+		} else {
+			cput(64-s);	/* 65-128 -lc */
+			if(debug['V']) {
+				Bprint(&bso, " lc%ld(%ld)\n", s, 64-s);
+				Bprint(&bso, "%6lux %P\n",
+					p->pc, p);
+			}
+		}
+		lcsize++;
+	}
+	while(lcsize & 1) {
+		s = 129;
+		cput(s);
+		lcsize++;
+	}
+	if(debug['v'] || debug['V'])
+		Bprint(&bso, "lcsize = %ld\n", lcsize);
 	Bflush(&bso);
 }
 
@@ -355,9 +324,9 @@ prefixof(Adr *a)
 int
 oclass(Adr *a)
 {
-	int32 v;
+	long v;
 
-	if((a->type >= D_INDIR && a->type < 2*D_INDIR) || a->index != D_NONE) {
+	if(a->type >= D_INDIR || a->index != D_NONE) {
 		if(a->index != D_NONE && a->scale == 0) {
 			if(a->type == D_ADDR) {
 				switch(a->index) {
@@ -383,6 +352,8 @@ oclass(Adr *a)
 		return Yax;
 
 	case D_CL:
+		return Ycl;
+
 	case D_DL:
 	case D_BL:
 	case D_AH:
@@ -466,7 +437,6 @@ oclass(Adr *a)
 		return Ym;
 
 	case D_CONST:
-	case D_CONST2:
 	case D_ADDR:
 		if(a->sym == S) {
 			v = a->offset;
@@ -550,7 +520,7 @@ bad:
 }
 
 static void
-put4(int32 v)
+put4(long v)
 {
 	if(dlm && curp != P && reloca != nil){
 		dynreloc(reloca->sym, curp->pc + andptr - &and[0], 1);
@@ -563,23 +533,11 @@ put4(int32 v)
 	andptr += 4;
 }
 
-int32
-symaddr(Sym *s)
-{
-	Adr a;
-
-	a.type = D_ADDR;
-	a.index = D_EXTERN;
-	a.offset = 0;
-	a.sym = s;
-	return vaddr(&a);
-}
-
-int32
+long
 vaddr(Adr *a)
 {
 	int t;
-	int32 v;
+	long v;
 	Sym *s;
 
 	t = a->type;
@@ -598,22 +556,9 @@ vaddr(Adr *a)
 				ckoff(s, v);
 			case STEXT:
 			case SCONST:
-			case SRODATA:
-				if(!s->reachable)
-					sysfatal("unreachable symbol in vaddr - %s", s->name);
-				v += s->value;
-				break;
-			case SMACHO:
-				if(!s->reachable)
-					sysfatal("unreachable symbol in vaddr - %s", s->name);
-				v += INITDAT + datsize + s->value;
-				break;
-			case SFIXED:
 				v += s->value;
 				break;
 			default:
-				if(!s->reachable)
-					sysfatal("unreachable symbol in vaddr - %s", s->name);
 				v += INITDAT + s->value;
 			}
 		}
@@ -624,14 +569,14 @@ vaddr(Adr *a)
 void
 asmand(Adr *a, int r)
 {
-	int32 v;
+	long v;
 	int t;
 	Adr aa;
 
 	v = a->offset;
 	t = a->type;
 	if(a->index != D_NONE) {
-		if(t >= D_INDIR && t < 2*D_INDIR) {
+		if(t >= D_INDIR) {
 			t -= D_INDIR;
 			if(t == D_NONE) {
 				*andptr++ = (0 << 6) | (4 << 0) | (r << 3);
@@ -679,9 +624,9 @@ asmand(Adr *a, int r)
 		*andptr++ = (3 << 6) | (reg[t] << 0) | (r << 3);
 		return;
 	}
-	if(t >= D_INDIR && t < 2*D_INDIR) {
+	if(t >= D_INDIR) {
 		t -= D_INDIR;
-		if(t == D_NONE || (D_CS <= t && t <= D_GS)) {
+		if(t == D_NONE || D_CS <= t && t <= D_GS) {
 			*andptr++ = (0 << 6) | (5 << 0) | (r << 3);
 			put4(v);
 			return;
@@ -870,53 +815,25 @@ subreg(Prog *p, int from, int to)
 	if(debug['Q'])
 		print("\n%P	s/%R/%R/\n", p, from, to);
 
-	if(p->from.type == from) {
+	if(p->from.type == from)
 		p->from.type = to;
-		p->ft = 0;
-	}
-	if(p->to.type == from) {
+	if(p->to.type == from)
 		p->to.type = to;
-		p->tt = 0;
-	}
 
-	if(p->from.index == from) {
+	if(p->from.index == from)
 		p->from.index = to;
-		p->ft = 0;
-	}
-	if(p->to.index == from) {
+	if(p->to.index == from)
 		p->to.index = to;
-		p->tt = 0;
-	}
 
 	from += D_INDIR;
-	if(p->from.type == from) {
+	if(p->from.type == from)
 		p->from.type = to+D_INDIR;
-		p->ft = 0;
-	}
-	if(p->to.type == from) {
+	if(p->to.type == from)
 		p->to.type = to+D_INDIR;
-		p->tt = 0;
-	}
 
 	if(debug['Q'])
 		print("%P\n", p);
 }
-
-// nacl RET:
-//	POPL BX
-//	ANDL BX, $~31
-//	JMP BX
-uchar naclret[] = { 0x5b, 0x83, 0xe3, ~31, 0xff, 0xe3 };
-
-// nacl JMP BX:
-//	ANDL BX, $~31
-//	JMP BX
-uchar nacljmpbx[] = { 0x83, 0xe3, ~31, 0xff, 0xe3 };
-
-// nacl CALL BX:
-//	ANDL BX, $~31
-//	CALL BX
-uchar naclcallbx[] = { 0x83, 0xe3, ~31, 0xff, 0xd3 };
 
 void
 doasm(Prog *p)
@@ -925,7 +842,7 @@ doasm(Prog *p)
 	Prog *q, pp;
 	uchar *t;
 	int z, op, ft, tt;
-	int32 v, pre;
+	long v, pre;
 
 	pre = prefixof(&p->from);
 	if(pre)
@@ -934,14 +851,9 @@ doasm(Prog *p)
 	if(pre)
 		*andptr++ = pre;
 
-	if(p->ft == 0)
-		p->ft = oclass(&p->from);
-	if(p->tt == 0)
-		p->tt = oclass(&p->to);
-
-	ft = p->ft * Ymax;
-	tt = p->tt * Ymax;
 	o = &optab[p->as];
+	ft = oclass(&p->from) * Ymax;
+	tt = oclass(&p->to) * Ymax;
 	t = o->ytab;
 	if(t == 0) {
 		diag("asmins: noproto %P", p);
@@ -982,12 +894,6 @@ found:
 		break;
 
 	case Zlit:
-		if(HEADTYPE == 8 && p->as == ARET) {
-			// native client return.
-			for(z=0; z<sizeof(naclret); z++)
-				*andptr++ = naclret[z];
-			break;
-		}
 		for(; op = o->op[z]; z++)
 			*andptr++ = op;
 		break;
@@ -1003,11 +909,9 @@ found:
 			diag("asmins: Zaut sb type ADDR");
 		p->from.type = p->from.index;
 		p->from.index = D_NONE;
-		p->ft = 0;
 		asmand(&p->from, reg[p->to.type]);
 		p->from.index = p->from.type;
 		p->from.type = D_ADDR;
-		p->ft = 0;
 		break;
 
 	case Zm_o:
@@ -1021,42 +925,6 @@ found:
 		break;
 
 	case Zo_m:
-		if(HEADTYPE == 8) {
-			Adr a;
-
-			switch(p->as) {
-			case AJMP:
-				if(p->to.type < D_AX || p->to.type > D_DI)
-					diag("indirect jmp must use register in native client");
-				// ANDL $~31, REG
-				*andptr++ = 0x83;
-				asmand(&p->to, 04);
-				*andptr++ = ~31;
-				// JMP REG
-				*andptr++ = 0xFF;
-				asmand(&p->to, 04);
-				return;
-
-			case ACALL:
-				a = p->to;
-				// native client indirect call
-				if(a.type < D_AX || a.type > D_DI) {
-					// MOVL target into BX
-					*andptr++ = 0x8b;
-					asmand(&p->to, reg[D_BX]);
-					memset(&a, 0, sizeof a);
-					a.type = D_BX;
-				}
-				// ANDL $~31, REG
-				*andptr++ = 0x83;
-				asmand(&a, 04);
-				*andptr++ = ~31;
-				// CALL REG
-				*andptr++ = 0xFF;
-				asmand(&a, 02);
-				return;
-			}
-		}
 		*andptr++ = op;
 		asmand(&p->to, o->op[z+1]);
 		break;
@@ -1077,12 +945,6 @@ found:
 	case Z_ib:
 		v = vaddr(&p->to);
 	case Zib_:
-		if(HEADTYPE == 8 && p->as == AINT && v == 3) {
-			// native client disallows all INT instructions.
-			// translate INT $3 to HLT.
-			*andptr++ = 0xf4;
-			break;
-		}
 		*andptr++ = op;
 		*andptr++ = v;
 		break;
@@ -1171,13 +1033,10 @@ found:
 		q = p->pcond;
 		if(q) {
 			v = q->pc - p->pc - 2;
-			if(q->pc == 0)
-				v = 0;
-			if(v >= -128 && v <= 127 && !p->bigjmp) {
+			if(v >= -128 && v <= 127) {
 				*andptr++ = op;
 				*andptr++ = v;
 			} else {
-				p->bigjmp = 1;
 				v -= 6-2;
 				*andptr++ = 0x0f;
 				*andptr++ = o->op[z+1];
@@ -1208,26 +1067,14 @@ found:
 		}
 		break;
 
-	case Zcallcon:
-		v = p->to.offset - p->pc - 5;
-		*andptr++ = op;
-		*andptr++ = v;
-		*andptr++ = v>>8;
-		*andptr++ = v>>16;
-		*andptr++ = v>>24;
-		break;
-
 	case Zjmp:
 		q = p->pcond;
 		if(q) {
 			v = q->pc - p->pc - 2;
-			if(q->pc == 0)
-				v = 0;
-			if(v >= -128 && v <= 127 && !p->bigjmp) {
+			if(v >= -128 && v <= 127) {
 				*andptr++ = op;
 				*andptr++ = v;
 			} else {
-				p->bigjmp = 1;
 				v -= 5-2;
 				*andptr++ = o->op[z+1];
 				*andptr++ = v;
@@ -1238,20 +1085,11 @@ found:
 		}
 		break;
 
-	case Zjmpcon:
-		v = p->to.offset - p->pc - 5;
-		*andptr++ = o->op[z+1];
-		*andptr++ = v;
-		*andptr++ = v>>8;
-		*andptr++ = v>>16;
-		*andptr++ = v>>24;
-		break;
-
 	case Zloop:
 		q = p->pcond;
 		if(q) {
 			v = q->pc - p->pc - 2;
-			if(v < -128 && v > 127)
+			if(v < -128 || v > 127)
 				diag("loop too far: %P", p);
 			*andptr++ = op;
 			*andptr++ = v;
@@ -1323,7 +1161,7 @@ bad:
 		}
 		return;
 	}
-	diag("doasm: notfound t2=%lux from=%lux to=%lux %P", t[2], p->from.type, p->to.type, p);
+	diag("doasm: notfound t2=%ux from=%ux to=%ux %P", t[2], p->from.type, p->to.type, p);
 	return;
 
 mfound:
@@ -1408,11 +1246,7 @@ mfound:
 		break;
 
 	case 7: /* imul rm,r */
-		if(t[4] == Pq) {
-			*andptr++ = Pe;
-			*andptr++ = Pm;
-		} else
-			*andptr++ = t[4];
+		*andptr++ = t[4];
 		*andptr++ = t[5];
 		asmand(&p->from, reg[p->to.type]);
 		break;
@@ -1422,53 +1256,9 @@ mfound:
 void
 asmins(Prog *p)
 {
-	if(HEADTYPE == 8) {
-		ulong npc;
-		static Prog *prefix;
 
-		// native client
-		// - pad indirect jump targets (aka ATEXT) to 32-byte boundary
-		// - instructions cannot cross 32-byte boundary
-		// - end of call (return address) must be on 32-byte boundary
-		if(p->as == ATEXT)
-			p->pc += 31 & -p->pc;
-		if(p->as == ACALL) {
-			// must end on 32-byte boundary.
-			// doasm to find out how long the CALL encoding is.
-			andptr = and;
-			doasm(p);
-			npc = p->pc + (andptr - and);
-			p->pc += 31 & -npc;
-		}
-		if(p->as == AREP || p->as == AREPN) {
-			// save prefix for next instruction,
-			// so that inserted NOPs do not split (e.g.) REP / MOVSL sequence.
-			prefix = p;
-			andptr = and;
-			return;
-		}
-		andptr = and;
-		if(prefix)
-			doasm(prefix);
-		doasm(p);
-		npc = p->pc + (andptr - and);
-		if(andptr > and && (p->pc&~31) != ((npc-1)&~31)) {
-			// crossed 32-byte boundary; pad to boundary and try again
-			p->pc += 31 & -p->pc;
-			andptr = and;
-			if(prefix)
-				doasm(prefix);
-			doasm(p);
-		}
-		prefix = nil;
-	} else {
-		andptr = and;
-		doasm(p);
-	}
-	if(andptr > and+sizeof and) {
-		print("and[] is too short - %d byte instruction\n", andptr - and);
-		errorexit();
-	}
+	andptr = and;
+	doasm(p);
 }
 
 enum{
@@ -1487,7 +1277,7 @@ struct Reloc
 	int n;
 	int t;
 	uchar *m;
-	uint32 *a;
+	ulong *a;
 };
 
 Reloc rels;
@@ -1497,26 +1287,26 @@ grow(Reloc *r)
 {
 	int t;
 	uchar *m, *nm;
-	uint32 *a, *na;
+	ulong *a, *na;
 
 	t = r->t;
 	r->t += 64;
 	m = r->m;
 	a = r->a;
-	r->m = nm = mal(r->t*sizeof(uchar));
-	r->a = na = mal(r->t*sizeof(uint32));
+	r->m = nm = malloc(r->t*sizeof(uchar));
+	r->a = na = malloc(r->t*sizeof(ulong));
 	memmove(nm, m, t*sizeof(uchar));
-	memmove(na, a, t*sizeof(uint32));
+	memmove(na, a, t*sizeof(ulong));
 	free(m);
 	free(a);
 }
 
 void
-dynreloc(Sym *s, uint32 v, int abs)
+dynreloc(Sym *s, ulong v, int abs)
 {
 	int i, k, n;
 	uchar *m;
-	uint32 *a;
+	ulong *a;
 	Reloc *r;
 
 	if(s->type == SUNDEF)
@@ -1561,7 +1351,7 @@ asmdyn()
 {
 	int i, n, t, c;
 	Sym *s;
-	uint32 la, ra, *a;
+	ulong la, ra, *a;
 	vlong off;
 	uchar *m;
 	Reloc *r;

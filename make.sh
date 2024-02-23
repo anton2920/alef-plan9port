@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 VERBOSITY=0
 VERBOSITYFLAGS=""
 while test "$1" = "-v"; do
@@ -32,10 +34,10 @@ targets()
 {
 	target sys/src/lib9 $1
 	target sys/src/libbio $1
-	target sys/src/libmach $1
+	# target sys/src/libmach $1
 	target sys/src/cmd/8l $1
 	target sys/src/cmd/8a $1
-	target sys/src/alef/8 $1
+	# target sys/src/alef/8 $1
 }
 
 STARTTIME=`date +%s`

@@ -1,35 +1,4 @@
-// Inferno utils/8l/list.c
-// http://code.google.com/p/inferno-os/source/browse/utils/8l/list.c
-//
-//	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
-//	Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
-//	Portions Copyright © 1997-1999 Vita Nuova Limited
-//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
-//	Portions Copyright © 2004,2006 Bruce Ellis
-//	Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
-//	Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
-//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
 #include	"l.h"
-#include	"../ld/lib.h"
 
 void
 listinit(void)
@@ -47,6 +16,7 @@ static	Prog	*bigP;
 int
 Pconv(Fmt *fp)
 {
+	char str[STRINGSZ];
 	Prog *p;
 
 	p = va_arg(fp->args, Prog*);
@@ -54,23 +24,23 @@ Pconv(Fmt *fp)
 	switch(p->as) {
 	case ATEXT:
 		if(p->from.scale) {
-			fmtprint(fp, "(%d)	%A	%D,%d,%D",
+			snprint(str, sizeof(str), "(%ld)	%A	%D,%d,%D",
 				p->line, p->as, &p->from, p->from.scale, &p->to);
 			break;
 		}
 	default:
-		fmtprint(fp, "(%d)	%A	%D,%D",
+		snprint(str, sizeof(str), "(%ld)	%A	%D,%D",
 			p->line, p->as, &p->from, &p->to);
 		break;
 	case ADATA:
 	case AINIT:
 	case ADYNT:
-		fmtprint(fp, "(%d)	%A	%D/%d,%D",
+		snprint(str, sizeof(str), "(%ld)	%A	%D/%d,%D",
 			p->line, p->as, &p->from, p->from.scale, &p->to);
 		break;
 	}
 	bigP = P;
-	return 0;
+	return fmtstrcpy(fp, str);
 }
 
 int
@@ -82,34 +52,26 @@ Aconv(Fmt *fp)
 	return fmtstrcpy(fp, anames[i]);
 }
 
-char*
-xsymname(Sym *s)
-{
-	if(s == nil)
-		return "!!noname!!";
-	return s->name;
-}
-
 int
 Dconv(Fmt *fp)
 {
-	char str[STRINGSZ], s[STRINGSZ];
+	char str[STRINGSZ+40], s[20];
 	Adr *a;
 	int i;
 
 	a = va_arg(fp->args, Adr*);
 	i = a->type;
-	if(i >= D_INDIR && i < 2*D_INDIR) {
+	if(i >= D_INDIR) {
 		if(a->offset)
-			snprint(str, sizeof str, "%ld(%R)", (long)a->offset, i-D_INDIR);
+			snprint(str, sizeof(str), "%ld(%R)", a->offset, i-D_INDIR);
 		else
-			snprint(str, sizeof str, "(%R)", i-D_INDIR);
+			snprint(str, sizeof(str), "(%R)", i-D_INDIR);
 		goto brk;
 	}
 	switch(i) {
 
 	default:
-		snprint(str, sizeof str, "%R", i);
+		snprint(str, sizeof(str), "%R", i);
 		break;
 
 	case D_NONE:
@@ -119,68 +81,61 @@ Dconv(Fmt *fp)
 	case D_BRANCH:
 		if(bigP != P && bigP->pcond != P)
 			if(a->sym != S)
-				snprint(str, sizeof str, "%lux+%s", bigP->pcond->pc,
+				snprint(str, sizeof(str), "%lux+%s", bigP->pcond->pc,
 					a->sym->name);
 			else
-				snprint(str, sizeof str, "%lux", bigP->pcond->pc);
+				snprint(str, sizeof(str), "%lux", bigP->pcond->pc);
 		else
-			snprint(str, sizeof str, "%ld(PC)", a->offset);
+			snprint(str, sizeof(str), "%ld(PC)", a->offset);
 		break;
 
 	case D_EXTERN:
-		snprint(str, sizeof str, "%s+%ld(SB)", xsymname(a->sym), a->offset);
+		snprint(str, sizeof(str), "%s+%ld(SB)", a->sym->name, a->offset);
 		break;
 
 	case D_STATIC:
-		snprint(str, sizeof str, "%s<%d>+%ld(SB)", xsymname(a->sym),
+		snprint(str, sizeof(str), "%s<%d>+%ld(SB)", a->sym->name,
 			a->sym->version, a->offset);
 		break;
 
 	case D_AUTO:
-		snprint(str, sizeof str, "%s+%ld(SP)", xsymname(a->sym), a->offset);
+		snprint(str, sizeof(str), "%s+%ld(SP)", a->sym->name, a->offset);
 		break;
 
 	case D_PARAM:
 		if(a->sym)
-			snprint(str, sizeof str, "%s+%ld(FP)", a->sym->name, a->offset);
+			snprint(str, sizeof(str), "%s+%ld(FP)", a->sym->name, a->offset);
 		else
-			snprint(str, sizeof str, "%ld(FP)", a->offset);
+			snprint(str, sizeof(str), "%ld(FP)", a->offset);
 		break;
 
 	case D_CONST:
-		snprint(str, sizeof str, "$%ld", a->offset);
-		break;
-
-	case D_CONST2:
-		snprint(str, sizeof str, "$%ld-%ld", a->offset, a->offset2);
+		snprint(str, sizeof(str), "$%ld", a->offset);
 		break;
 
 	case D_FCONST:
-		snprint(str, sizeof str, "$(%.8lux,%.8lux)", a->ieee.h, a->ieee.l);
+		snprint(str, sizeof(str), "$(%.8lux,%.8lux)", a->ieee.h, a->ieee.l);
 		break;
 
 	case D_SCONST:
-		snprint(str, sizeof str, "$\"%S\"", a->scon);
+		snprint(str, sizeof(str), "$\"%S\"", a->scon);
 		break;
 
 	case D_ADDR:
 		a->type = a->index;
 		a->index = D_NONE;
-		snprint(str, sizeof str, "$%D", a);
+		snprint(str, sizeof(str), "$%D", a);
 		a->index = a->type;
 		a->type = D_ADDR;
 		goto conv;
 	}
 brk:
 	if(a->index != D_NONE) {
-		sprint(s, "(%R*%d)", a->index, a->scale);
+		snprint(s, sizeof(s), "(%R*%d)", a->index, a->scale);
 		strcat(str, s);
 	}
 conv:
-	fmtstrcpy(fp, str);
-//	if(a->gotype)
-//		fmtprint(fp, "«%s»", a->gotype->name);
-	return 0;
+	return fmtstrcpy(fp, str);
 }
 
 char*	regstr[] =
@@ -258,14 +213,14 @@ char*	regstr[] =
 int
 Rconv(Fmt *fp)
 {
-	char str[STRINGSZ];
+	char str[20];
 	int r;
 
 	r = va_arg(fp->args, int);
 	if(r >= D_AL && r <= D_NONE)
-		sprint(str, "%s", regstr[r-D_AL]);
+		snprint(str, sizeof(str), "%s", regstr[r-D_AL]);
 	else
-		sprint(str, "gok(%d)", r);
+		snprint(str, sizeof(str), "gok(%d)", r);
 
 	return fmtstrcpy(fp, str);
 }
@@ -274,7 +229,7 @@ int
 Sconv(Fmt *fp)
 {
 	int i, c;
-	char str[STRINGSZ], *p, *a;
+	char str[30], *p, *a;
 
 	a = va_arg(fp->args, char*);
 	p = str;
@@ -330,7 +285,7 @@ diag(char *fmt, ...)
 	print("%s: %s\n", tn, buf);
 
 	nerrors++;
-	if(nerrors > 20) {
+	if(nerrors > 20 && !debug['A']) {
 		print("too many errors\n");
 		errorexit();
 	}

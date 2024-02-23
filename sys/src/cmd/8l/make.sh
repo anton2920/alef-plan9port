@@ -16,7 +16,7 @@ run()
 	"$@" || exit 1
 }
 
-CFLAGS="-I../../../../386/include -I../../../include -I../ld -I../8l -ggdb -O0 -fno-inline"
+CFLAGS=" -m32 -I../../../../386/include -I../../../include  -ggdb -O0 -fno-inline"
 LDFLAGS="-L../../../lib -lbio -l9 -lm -static"
 
 # TODO(anton2920): silence warnings for later.
@@ -28,11 +28,11 @@ case $1 in
 	'')
 		run sh mkenam
 
-		for file in `echo ../ld/*.c *.c`; do
+		for file in `echo *.c`; do
 			run cc -c $CFLAGS $file
 		done
 
-		run cc -o $PROJECT *.o $LDFLAGS
+		run cc -o $PROJECT -m32 *.o $LDFLAGS
 		run mkdir -p ../../../../386/bin
 		run cp $PROJECT ../../../../386/bin
 		;;

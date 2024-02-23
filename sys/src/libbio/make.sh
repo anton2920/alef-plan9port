@@ -16,7 +16,7 @@ run()
 	"$@" || exit 1
 }
 
-CFLAGS="-I../../../386/include -I../../include -ggdb -O0 -fno-inline"
+CFLAGS=" -m32 -I../../../386/include -I../../include -ggdb -O0 -fno-inline"
 
 STARTTIME=`date +%s`
 

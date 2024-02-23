@@ -1,39 +1,9 @@
-// Inferno utils/cc/macbody
-// http://code.google.com/p/inferno-os/source/browse/utils/cc/macbody
-//
-//	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
-//	Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
-//	Portions Copyright © 1997-1999 Vita Nuova Limited
-//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
-//	Portions Copyright © 2004,2006 Bruce Ellis
-//	Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
-//	Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
-//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
 #define VARMAC 0x80
 
-int32
+long
 getnsn(void)
 {
-	int32 n;
+	long n;
 	int c;
 
 	c = getnsc();
@@ -55,7 +25,7 @@ getsym(void)
 	char *cp;
 
 	c = getnsc();
-	if(!isalpha(c) && c != '_' && c < 0x80) {
+	if(!isalpha(c) && c != '_' && c < Runeself) {
 		unget(c);
 		return S;
 	}
@@ -63,7 +33,7 @@ getsym(void)
 		if(cp <= symb+NSYMB-4)
 			*cp++ = c;
 		c = getc();
-		if(isalnum(c) || c == '_' || c >= 0x80)
+		if(isalnum(c) || c == '_' || c >= Runeself)
 			continue;
 		unget(c);
 		break;
@@ -138,17 +108,23 @@ dodefine(char *cp)
 {
 	Sym *s;
 	char *p;
-	int32 l;
+	long l;
 
-	ensuresymb(strlen(cp));
 	strcpy(symb, cp);
 	p = strchr(symb, '=');
 	if(p) {
 		*p++ = 0;
 		s = lookup();
 		l = strlen(p) + 2;	/* +1 null, +1 nargs */
-		s->macro = alloc(l);
-		strcpy(s->macro+1, p);
+		while(l & 3)
+			l++;
+		while(nhunk < l)
+			gethunk();
+		*hunk = 0;
+		strcpy(hunk+1, p);
+		s->macro = hunk;
+		hunk += l;
+		nhunk -= l;
 	} else {
 		s = lookup();
 		s->macro = "\0001";	/* \000 is nargs */
@@ -284,7 +260,7 @@ macdef(void)
 			continue;
 		}
 		if(ischr){
-			if(c == '\\'){
+			if(c == '\\'){ 
 				base = allocn(base, len, 1);
 				base[len++] = c;
 				c = getc();
@@ -401,7 +377,7 @@ macexpand(Sym *s, char *b)
 			print("#expand %s %s\n", s->name, ob);
 		return;
 	}
-
+	
 	nargs = (char)(*s->macro & ~VARMAC) - 1;
 	dots = *s->macro & VARMAC;
 
@@ -575,21 +551,26 @@ macinc(void)
 	for(i=0; i<ninclude; i++) {
 		if(i == 0 && c0 == '>')
 			continue;
-		ensuresymb(strlen(include[i])+strlen(str)+2);
 		strcpy(symb, include[i]);
 		strcat(symb, "/");
 		if(strcmp(symb, "./") == 0)
 			symb[0] = 0;
 		strcat(symb, str);
-		f = open(symb, OREAD);
+		f = open(symb, 0);
 		if(f >= 0)
 			break;
 	}
 	if(f < 0)
 		strcpy(symb, str);
 	c = strlen(symb) + 1;
-	hp = alloc(c);
-	memcpy(hp, symb, c);
+	while(c & 3)
+		c++;
+	while(nhunk < c)
+		gethunk();
+	hp = hunk;
+	memcpy(hunk, symb, c);
+	nhunk -= c;
+	hunk += c;
 	newio();
 	pushio();
 	newfile(hp, f);
@@ -606,7 +587,7 @@ maclin(void)
 {
 	char *cp;
 	int c;
-	int32 n;
+	long n;
 
 	n = getnsn();
 	c = getc();
@@ -640,8 +621,14 @@ maclin(void)
 
 nn:
 	c = strlen(symb) + 1;
-	cp = alloc(c);
-	memcpy(cp, symb, c);
+	while(c & 3)
+		c++;
+	while(nhunk < c)
+		gethunk();
+	cp = hunk;
+	memcpy(hunk, symb, c);
+	nhunk -= c;
+	hunk += c;
 	linehist(cp, n);
 	return;
 
@@ -727,8 +714,8 @@ macprag(void)
 		pragfpround();
 		return;
 	}
-	if(s && strcmp(s->name, "textflag") == 0) {
-		pragtextflag();
+	if(s && strcmp(s->name, "profile") == 0) {
+		pragprofile();
 		return;
 	}
 	if(s && strcmp(s->name, "varargck") == 0) {
@@ -737,14 +724,6 @@ macprag(void)
 	}
 	if(s && strcmp(s->name, "incomplete") == 0) {
 		pragincomplete();
-		return;
-	}
-	if(s && strcmp(s->name, "dynimport") == 0) {
-		pragdynimport();
-		return;
-	}
-	if(s && strcmp(s->name, "dynexport") == 0) {
-		pragdynexport();
 		return;
 	}
 	while(getnsc() != '\n')
@@ -773,11 +752,17 @@ praglib:
 		goto bad;
 
 	/*
-	 * put pragma-line in as a funny history
+	 * put pragma-line in as a funny history 
 	 */
 	c = strlen(symb) + 1;
-	hp = alloc(c);
-	memcpy(hp, symb, c);
+	while(c & 3)
+		c++;
+	while(nhunk < c)
+		gethunk();
+	hp = hunk;
+	memcpy(hunk, symb, c);
+	nhunk -= c;
+	hunk += c;
 
 	h = alloc(sizeof(Hist));
 	h->name = hp;
@@ -849,4 +834,23 @@ linehist(char *f, int offset)
 	}
 	ehist->link = h;
 	ehist = h;
+}
+
+void
+gethunk(void)
+{
+	char *h;
+	long nh;
+
+	nh = NHUNK;
+	if(thunk >= 10L*NHUNK)
+		nh = 10L*NHUNK;
+	h = (char*)mysbrk(nh);
+	if(h == (char*)-1) {
+		yyerror("out of memory");
+		errorexit();
+	}
+	hunk = h;
+	nhunk = nh;
+	thunk += nh;
 }

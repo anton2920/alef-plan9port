@@ -1,33 +1,3 @@
-// Inferno utils/cc/lexbody
-// http://code.google.com/p/inferno-os/source/browse/utils/cc/lexbody
-//
-//	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
-//	Portions Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
-//	Portions Copyright © 1997-1999 Vita Nuova Limited
-//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com)
-//	Portions Copyright © 2004,2006 Bruce Ellis
-//	Portions Copyright © 2005-2007 C H Forsyth (forsyth@terzarima.net)
-//	Revisions Copyright © 2000-2007 Lucent Technologies Inc. and others
-//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
 /*
  * common code for all the assemblers
  */
@@ -47,28 +17,7 @@ pragvararg(void)
 }
 
 void
-pragdynimport(void)
-{
-	while(getnsc() != '\n')
-		;
-}
-
-void
-pragdynexport(void)
-{
-	while(getnsc() != '\n')
-		;
-}
-
-void
 pragfpround(void)
-{
-	while(getnsc() != '\n')
-		;
-}
-
-void
-pragtextflag(void)
 {
 	while(getnsc() != '\n')
 		;
@@ -88,16 +37,11 @@ pragincomplete(void)
 		;
 }
 
-void
-gethunk(void)
-{
-	hunk = malloc(NHUNK);
-	memset(hunk, 0, NHUNK);
-	nhunk = NHUNK;
-}
-
+/*
+ * real allocs
+ */
 void*
-alloc(int32 n)
+alloc(long n)
 {
 	void *p;
 
@@ -114,7 +58,7 @@ alloc(int32 n)
 }
 
 void*
-allocn(void *p, int32 on, int32 n)
+allocn(void *p, long on, long n)
 {
 	void *q;
 
@@ -133,20 +77,6 @@ allocn(void *p, int32 on, int32 n)
 }
 
 void
-ensuresymb(int32 n)
-{
-	if(symb == nil) {
-		symb = alloc(NSYMB+1);
-		nsymb = NSYMB;
-	}
-
-	if(n > nsymb) {
-		symb = allocn(symb, nsymb, n+1-nsymb);
-		nsymb = n;
-	}
-}
-
-void
 setinclude(char *p)
 {
 	int i;
@@ -156,10 +86,11 @@ setinclude(char *p)
 	for(i=1; i < ninclude; i++)
 		if(strcmp(p, include[i]) == 0)
 			return;
-	
-	if(ninclude%8 == 0)
-		include = allocn(include, ninclude*sizeof(char *), 
-			8*sizeof(char *));
+
+	if(ninclude >= nelem(include)) {
+		yyerror("ninclude too small %d", nelem(include));
+		exits("ninclude");
+	}
 	include[ninclude++] = p;
 }
 
@@ -229,7 +160,7 @@ newfile(char *s, int f)
 Sym*
 slookup(char *s)
 {
-	ensuresymb(strlen(s));
+
 	strcpy(symb, s);
 	return lookup();
 }
@@ -238,35 +169,16 @@ Sym*
 lookup(void)
 {
 	Sym *s;
-	int32 h;
+	long h;
 	char *p;
 	int c, l;
-	char *r, *w;
-
-	if((uchar)symb[0] == 0xc2 && (uchar)symb[1] == 0xb7) {
-		// turn leading · into ""·
-		h = strlen(symb);
-		ensuresymb(h+2);
-		memmove(symb+2, symb, h+1);
-		symb[0] = '"';
-		symb[1] = '"';
-	}
-
-	// turn · into .
-	for(r=w=symb; *r; r++) {
-		if((uchar)*r == 0xc2 && (uchar)*(r+1) == 0xb7) {
-			*w++ = '.';
-			r++;
-		}else
-			*w++ = *r;
-	}
-	*w++ = '\0';
 
 	h = 0;
 	for(p=symb; c = *p; p++)
 		h = h+h+h + c;
 	l = (p - symb) + 1;
-	h &= 0xffffff;
+	if(h < 0)
+		h = ~h;
 	h %= NHASH;
 	c = symb[0];
 	for(s = hash[h]; s != S; s = s->link) {
@@ -286,16 +198,6 @@ lookup(void)
 }
 
 int
-ISALPHA(int c)
-{
-	if(isalpha(c))
-		return 1;
-	if(c >= Runeself)
-		return 1;
-	return 0;
-}
-
-int32
 yylex(void)
 {
 	int c, c1;
@@ -322,7 +224,7 @@ l1:
 		}
 		goto l0;
 	}
-	if(ISALPHA(c))
+	if(isalpha(c))
 		goto talph;
 	if(isdigit(c))
 		goto tnum;
@@ -338,7 +240,7 @@ l1:
 
 	case '.':
 		c = GETC();
-		if(ISALPHA(c)) {
+		if(isalpha(c)) {
 			cp = symb;
 			*cp++ = '.';
 			goto aloop;
@@ -359,7 +261,7 @@ l1:
 	aloop:
 		*cp++ = c;
 		c = GETC();
-		if(ISALPHA(c) || isdigit(c) || c == '_' || c == '$')
+		if(isalpha(c) || isdigit(c) || c == '_' || c == '$')
 			goto aloop;
 		*cp = 0;
 		peekc = c;
@@ -716,11 +618,11 @@ yyerror(char *a, ...)
 }
 
 void
-prfile(int32 l)
+prfile(long l)
 {
 	int i, n;
 	Hist a[HISTSZ], *h;
-	int32 d;
+	long d;
 
 	n = 0;
 	for(h = hist; h != H; h = h->link) {
@@ -780,5 +682,5 @@ ieeedtod(Ieee *ieee, double native)
 	fr = modf(fr*f, &ho);
 	ieee->l = ho;
 	ieee->l <<= 16;
-	ieee->l |= (int32)(fr*f);
+	ieee->l |= (long)(fr*f);
 }

@@ -34,10 +34,10 @@
 #define YYSTYPE_IS_DECLARED 1
 typedef union	{
 	Sym	*sym;
-	int32	lval;
+	long	lval;
 	struct {
-		int32 v1;
-		int32 v2;
+		long v1;
+		long v2;
 	} con2;
 	double	dval;
 	char	sval[8];
