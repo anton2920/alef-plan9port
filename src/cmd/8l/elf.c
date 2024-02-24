@@ -80,7 +80,7 @@ elf32shdr(void (*putl)(long), ulong name, ulong type, ulong flags, ulong vaddr,
 static void
 elf32sectab(void (*putl)(long))
 {
-	seek(cout, HEADR+textsize+datsize+symsize, 0);
+	seek(cout, rnd(HEADR+textsize, INITRND)+datsize+symsize, 0);
 	elf32shdr(putl, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0);
 
@@ -103,7 +103,7 @@ elf32sectab(void (*putl)(long))
 		fo, w, 0, 0, INITRND, 0);
 
 	elf32shdr(putl, Stistrtab, Strtab, 1 << 5, 0,
-		HEADR+textsize+datsize+symsize+5*Shdr32sz, 27, 0, 0, 1, 0);
+		rnd(HEADR+textsize, INITRND)+datsize+symsize+5*Shdr32sz, 27, 0, 0, 1, 0);
 	elfstrtab();
 }
 
@@ -132,7 +132,7 @@ elf32(int mach, int bo, int addpsects, void (*putpsects)(Putl))
 	putl(entryvalue());		/* entry vaddr */
 	putl(Ehdr32sz);			/* offset to first phdr */
 	if (debug['S'])
-		putl(HEADR+textsize+datsize+symsize); /* offset to first shdr */
+		putl(rnd(HEADR+textsize, INITRND)+datsize+symsize); /* offset to first shdr */
 	else
 		putl(0);
 	putl(0L);			/* flags */
@@ -163,7 +163,8 @@ elf32(int mach, int bo, int addpsects, void (*putpsects)(Putl))
 	elf32phdr(putl, PT_LOAD, fo, va, pa,
 		w, w+bsssize, R|W, INITRND);	/* data */
 
-	elf32phdr(putl, NOPTYPE, HEADR+textsize+datsize, 0, 0,
+	fo += w;
+	elf32phdr(putl, NOPTYPE, fo, 0, 0,
 		symsize, lcsize, R, 4);	/* symbol table */
 
 	if (addpsects > 0)

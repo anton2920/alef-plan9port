@@ -154,7 +154,7 @@ main(int argc, char *argv[])
 		if(debug['9'])
 			HEADTYPE = 2;
 		if(debug['E'])
-			HEADTYPE= 5;
+			HEADTYPE = 5;
 	}
 	switch(HEADTYPE) {
 	default:
@@ -217,7 +217,7 @@ main(int argc, char *argv[])
 			INITDAT = 0;
 		if(INITRND == -1)
 			INITRND = 4096;
-		INITTEXT = (INITTEXT & ~((vlong)INITRND - 1)) + HEADR;
+		INITTEXT = rnd(INITTEXT, INITRND) + HEADR;
 		break;
 	}
 	if (INITTEXTP == -1)
@@ -226,7 +226,7 @@ main(int argc, char *argv[])
 		print("warning: -D0x%lux is ignored because of -R0x%lux\n",
 			INITDAT, INITRND);
 	if(debug['v'])
-		Bprint(&bso, "HEADER = -H0x%ld -T0x%lux -D0x%lux -R0x%lux\n",
+		Bprint(&bso, "HEADER = -H0x%ld -T0x%x -D0x%x -R0x%x\n",
 			HEADTYPE, INITTEXT, INITDAT, INITRND);
 	Bflush(&bso);
 	for(i=1; optab[i].as; i++)

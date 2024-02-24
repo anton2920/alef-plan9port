@@ -144,12 +144,14 @@ asmb(void)
 		seek(cout, textsize+HEADR, 0);
 		break;
 	case 2:
-	case 5:
 		seek(cout, HEADR+textsize, 0);
 		break;
 	case 3:
 	case 4:
 		seek(cout, HEADR+rnd(textsize, INITRND), 0);
+		break;
+	case 5:
+		seek(cout, rnd(HEADR+textsize, INITRND), 0);
 		break;
 	}
 
@@ -187,12 +189,14 @@ asmb(void)
 			seek(cout, rnd(HEADR+textsize, INITRND)+datsize, 0);
 			break;
 		case 2:
-		case 5:
 			seek(cout, HEADR+textsize+datsize, 0);
 			break;
 		case 3:
 		case 4:
 			debug['s'] = 1;
+			break;
+		case 5:
+			seek(cout, rnd(HEADR+textsize, INITRND)+datsize, 0);
 			break;
 		}
 		if(!debug['s'])
