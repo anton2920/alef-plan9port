@@ -1,3 +1,31 @@
+// Inferno libmach/access.c
+// http://code.google.com/p/inferno-os/source/browse/utils/libmach/access.c
+//
+// 	Copyright © 1994-1999 Lucent Technologies Inc.
+// 	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
+// 	Portions Copyright © 1997-1999 Vita Nuova Limited.
+// 	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
+// 	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
+//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 /*
  * functions to read and write an executable or file image
  */
@@ -9,7 +37,7 @@
 
 static	int	mget(Map*, uvlong, void*, int);
 static	int	mput(Map*, uvlong, void*, int);
-static	struct	segment*	reloc(Map*, uvlong, vlong*);
+static	Seg*	reloc(Map*, uvlong, vlong*);
 
 /*
  * routines to get/put various types
@@ -17,7 +45,7 @@ static	struct	segment*	reloc(Map*, uvlong, vlong*);
 int
 geta(Map *map, uvlong addr, uvlong *x)
 {
-	ulong l;
+	uint32 l;
 	uvlong vl;
 
 	if (mach->szaddr == 8){
@@ -53,7 +81,7 @@ get8(Map *map, uvlong addr, uvlong *x)
 }
 
 int
-get4(Map *map, uvlong addr, ulong *x)
+get4(Map *map, uvlong addr, uint32 *x)
 {
 	if (!map) {
 		werrstr("get4: invalid map");
@@ -130,7 +158,7 @@ put8(Map *map, uvlong addr, uvlong v)
 }
 
 int
-put4(Map *map, uvlong addr, ulong v)
+put4(Map *map, uvlong addr, uint32 v)
 {
 	if (!map) {
 		werrstr("put4: invalid map");
@@ -162,100 +190,41 @@ put1(Map *map, uvlong addr, uchar *v, int size)
 }
 
 static int
-spread(struct segment *s, void *buf, int n, uvlong off)
-{
-	uvlong base;
-
-	static struct {
-		struct segment *s;
-		char a[8192];
-		uvlong off;
-	} cache;
-
-	if(s->cache){
-		base = off&~(sizeof cache.a-1);
-		if(cache.s != s || cache.off != base){
-			cache.off = ~0;
-			if(seek(s->fd, base, 0) >= 0
-			&& readn(s->fd, cache.a, sizeof cache.a) == sizeof cache.a){
-				cache.s = s;
-				cache.off = base;
-			}
-		}
-		if(cache.s == s && cache.off == base){
-			off &= sizeof cache.a-1;
-			if(off+n > sizeof cache.a)
-				n = sizeof cache.a - off;
-			memmove(buf, cache.a+off, n);
-			return n;
-		}
-	}
-
-	return pread(s->fd, buf, n, off);
-}
-
-static int
 mget(Map *map, uvlong addr, void *buf, int size)
 {
 	uvlong off;
-	int i, j, k;
-	struct segment *s;
+	Seg *s;
 
 	s = reloc(map, addr, (vlong*)&off);
 	if (!s)
 		return -1;
-	if (s->fd < 0) {
+	if (s->rw == nil) {
 		werrstr("unreadable map");
 		return -1;
 	}
-	for (i = j = 0; i < 2; i++) {	/* in case read crosses page */
-		k = spread(s, (void*)((uchar *)buf+j), size-j, off+j);
-		if (k < 0) {
-			werrstr("can't read address %llux: %r", addr);
-			return -1;
-		}
-		j += k;
-		if (j == size)
-			return j;
-	}
-	werrstr("partial read at address %llux (size %d j %d)", addr, size, j);
-	return -1;
+	return s->rw(map, s, off, buf, size, 1);
 }
 
 static int
 mput(Map *map, uvlong addr, void *buf, int size)
 {
 	vlong off;
-	int i, j, k;
-	struct segment *s;
+	Seg *s;
 
 	s = reloc(map, addr, &off);
 	if (!s)
 		return -1;
-	if (s->fd < 0) {
+	if (s->rw == nil) {
 		werrstr("unwritable map");
 		return -1;
 	}
-
-	seek(s->fd, off, 0);
-	for (i = j = 0; i < 2; i++) {	/* in case read crosses page */
-		k = write(s->fd, buf, size-j);
-		if (k < 0) {
-			werrstr("can't write address %llux: %r", addr);
-			return -1;
-		}
-		j += k;
-		if (j == size)
-			return j;
-	}
-	werrstr("partial write at address %llux", addr);
-	return -1;
+	return s->rw(map, s, off, buf, size, 0);
 }
 
 /*
  *	convert address to file offset; returns nonzero if ok
  */
-static struct segment*
+static Seg*
 reloc(Map *map, uvlong addr, vlong *offp)
 {
 	int i;

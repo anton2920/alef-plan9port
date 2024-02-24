@@ -1,7 +1,44 @@
+// Inferno libmach/8db.c
+// http://code.google.com/p/inferno-os/source/browse/utils/libmach/8db.c
+//
+// 	Copyright © 1994-1999 Lucent Technologies Inc.
+// 	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
+// 	Portions Copyright © 1997-1999 Vita Nuova Limited.
+// 	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
+// 	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
+//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
 #include <mach.h>
+#define Ureg UregAmd64
+#include <ureg_amd64.h>
+#undef Ureg
+#define Ureg Ureg386
+#include <ureg_x86.h>
+#undef Ureg
+
+typedef struct UregAmd64 UregAmd64;
+typedef struct Ureg386 Ureg386;
 
 /*
  * i386-specific debugger interface
@@ -18,8 +55,11 @@ static	int	i386das(Map*, uvlong, char*, int);
 static	int	i386instlen(Map*, uvlong);
 
 static	char	STARTSYM[] =	"_main";
+static	char	GOSTARTSYM[] =	"sys·goexit";
 static	char	PROFSYM[] =	"_mainp";
 static	char	FRAMENAME[] =	".frame";
+static	char	LESSSTACK[] = "sys·lessstack";
+static	char	MORESTACK[] = "sys·morestack";
 static char *excname[] =
 {
 [0]	"divide error",
@@ -56,7 +96,7 @@ Machdata i386mach =
 	1,			/* break point size */
 
 	leswab,			/* convert short to local byte order */
-	leswal,			/* convert long to local byte order */
+	leswal,			/* convert int32 to local byte order */
 	leswav,			/* convert vlong to local byte order */
 	i386trace,		/* C traceback */
 	i386frame,		/* frame finder */
@@ -73,7 +113,7 @@ Machdata i386mach =
 static char*
 i386excep(Map *map, Rgetter rget)
 {
-	ulong c;
+	uint32 c;
 	uvlong pc;
 	static char buf[16];
 
@@ -95,33 +135,145 @@ static int
 i386trace(Map *map, uvlong pc, uvlong sp, uvlong link, Tracer trace)
 {
 	int i;
-	uvlong osp;
-	Symbol s, f;
+	uvlong osp, pc1;
+	Symbol s, f, s1;
+	extern Mach mamd64;
+	int isamd64;
+	uvlong g, m, lessstack, morestack, stktop;
+
+	isamd64 = (mach == &mamd64);
+
+	// ../pkg/runtime/runtime.h
+	// G is
+	//	byte* stackguard
+	//	byte* stackbase (= Stktop*)
+	// TODO(rsc): Need some way to get at the g for other threads.
+	// Probably need to pass it into the trace function.
+	g = 0;
+	if(isamd64)
+		geta(map, offsetof(struct UregAmd64, r15), &g);
+	else {
+		// TODO(rsc): How to fetch g on 386?
+	}
+	stktop = 0;
+	if(g != 0)
+		geta(map, g+1*mach->szaddr, &stktop);
+
+	lessstack = 0;
+	if(lookup(0, LESSSTACK, &s))
+		lessstack = s.value;
+	morestack = 0;
+	if(lookup(0, MORESTACK, &s))
+		morestack = s.value;
 
 	USED(link);
-	i = 0;
 	osp = 0;
-	while(findsym(pc, CTEXT, &s)) {
+	i = 0;
+
+	for(;;) {
+		if(!findsym(pc, CTEXT, &s)) {
+			// check for closure return sequence
+			uchar buf[8], *p;
+			if(get1(map, pc, buf, 8) < 0)
+				break;
+			// ADDQ $xxx, SP; RET
+			p = buf;
+			if(mach == &mamd64) {
+				if(p[0] != 0x48)
+					break;
+				p++;
+			}
+			if(p[0] != 0x81 || p[1] != 0xc4 || p[6] != 0xc3)
+				break;
+			sp += p[2] | (p[3]<<8) | (p[4]<<16) | (p[5]<<24);
+			if(geta(map, sp, &pc) < 0)
+				break;
+			sp += mach->szaddr;
+			continue;
+		}
+
 		if (osp == sp)
 			break;
 		osp = sp;
 
-		if(strcmp(STARTSYM, s.name) == 0 || strcmp(PROFSYM, s.name) == 0)
+		if(strcmp(STARTSYM, s.name) == 0 ||
+		   strcmp(GOSTARTSYM, s.name) == 0 ||
+		   strcmp(PROFSYM, s.name) == 0)
 			break;
 
+		if(s.value == morestack) {
+			// In the middle of morestack.
+			// Caller is m->morepc.
+			// Caller's caller is in m->morearg.
+			// TODO(rsc): 386
+			geta(map, offsetof(struct UregAmd64, r14), &m);
+
+			pc = 0;
+			sp = 0;
+			pc1 = 0;
+			s1 = s;
+			memset(&s, 0, sizeof s);
+			geta(map, m+1*mach->szaddr, &pc1);	// m->morepc
+			geta(map, m+2*mach->szaddr, &sp);	// m->morebuf.sp
+			geta(map, m+3*mach->szaddr, &pc);	// m->morebuf.pc
+			findsym(pc1, CTEXT, &s);
+			(*trace)(map, pc1, sp-mach->szaddr, &s1);	// morestack symbol; caller's PC/SP
+
+			// caller's caller
+			s1 = s;
+			findsym(pc, CTEXT, &s);
+			(*trace)(map, pc, sp, &s1);		// morestack's caller; caller's caller's PC/SP
+			continue;
+		}
+
+		if(pc == lessstack) {
+			// ../pkg/runtime/runtime.h
+			// Stktop is
+			//	byte* stackguard
+			//	byte* stackbase
+			//	Gobuf gobuf
+			//		byte* sp;
+			//		byte* pc;
+			//		G*	g;
+			if(!isamd64)
+				fprint(2, "warning: cannot unwind stack split on 386\n");
+			if(stktop == 0)
+				break;
+			pc = 0;
+			sp = 0;
+			geta(map, stktop+2*mach->szaddr, &sp);
+			geta(map, stktop+3*mach->szaddr, &pc);
+			geta(map, stktop+1*mach->szaddr, &stktop);
+			(*trace)(map, pc, sp, &s1);
+			continue;
+		}
+
+		s1 = s;
+		pc1 = 0;
 		if(pc != s.value) {	/* not at first instruction */
 			if(findlocal(&s, FRAMENAME, &f) == 0)
 				break;
+			geta(map, sp, &pc1);
 			sp += f.value-mach->szaddr;
 		}
-
-		if (geta(map, sp, &pc) < 0)
+		if(geta(map, sp, &pc) < 0)
 			break;
+
+		// If PC is not valid, assume we caught the function
+		// before it moved the stack pointer down or perhaps
+		// after it moved the stack pointer back up.
+		// Try the PC we'd have gotten without the stack
+		// pointer adjustment above (pc != s.value).
+		// This only matters for the first frame, and it is only
+		// a heuristic, but it does help.
+		if(!findsym(pc, CTEXT, &s) || strcmp(s.name, "etext") == 0)
+			pc = pc1;
 
 		if(pc == 0)
 			break;
 
-		(*trace)(map, pc, sp, &s);
+		if(pc != lessstack)
+			(*trace)(map, pc, sp, &s1);
 		sp += mach->szaddr;
 
 		if(++i > 1000)
@@ -177,14 +329,14 @@ struct	Instr
 	uchar	mod;		/* bits 6-7 of mod r/m field */
 	uchar	reg;		/* bits 3-5 of mod r/m field */
 	char	ss;		/* bits 6-7 of SIB */
-	char	index;		/* bits 3-5 of SIB */
-	char	base;		/* bits 0-2 of SIB */
+	schar	index;		/* bits 3-5 of SIB */
+	schar	base;		/* bits 0-2 of SIB */
 	char	rip;		/* RIP-relative in amd64 mode */
 	uchar	opre;		/* f2/f3 could introduce media */
 	short	seg;		/* segment of far address */
-	ulong	disp;		/* displacement */
-	ulong 	imm;		/* immediate */
-	ulong 	imm2;		/* second immediate operand */
+	uint32	disp;		/* displacement */
+	uint32 	imm;		/* immediate */
+	uint32 	imm2;		/* second immediate operand */
 	uvlong	imm64;		/* big immediate */
 	char	*curr;		/* fill level in output buffer */
 	char	*end;		/* end of output buffer */
@@ -203,14 +355,15 @@ enum{
 	DI,
 
 	/* amd64 */
-	R8,
-	R9,
-	R10,
-	R11,
-	R12,
-	R13,
-	R14,
-	R15
+	/* be careful: some unix system headers #define R8, R9, etc */
+	AMD64_R8,
+	AMD64_R9,
+	AMD64_R10,
+	AMD64_R11,
+	AMD64_R12,
+	AMD64_R13,
+	AMD64_R14,
+	AMD64_R15
 };
 
 	/* amd64 rex extension byte */
@@ -220,7 +373,7 @@ enum{
 	REXX		= 1<<1,	/* extend sib index */
 	REXB		= 1<<0	/* extend modrm r/m, sib base, or opcode reg */
 };
-	
+
 	/* Operand Format codes */
 /*
 %A	-	address size register modifier (!asize -> 'E')
@@ -258,14 +411,14 @@ enum {
 	Iwdq,			/* Operand-sized immediate, possibly 64 bits */
 	Awd,			/* Address offset */
 	Iwds,			/* Operand-sized immediate (sign extended) */
-	RM,			/* Word or long R/M field with register (/r) */
+	RM,			/* Word or int32 R/M field with register (/r) */
 	RMB,			/* Byte R/M field with register (/r) */
-	RMOP,			/* Word or long R/M field with op code (/digit) */
+	RMOP,			/* Word or int32 R/M field with op code (/digit) */
 	RMOPB,			/* Byte R/M field with op code (/digit) */
 	RMR,			/* R/M register only (mod = 11) */
 	RMM,			/* R/M memory only (mod = 0/1/2) */
-	R0,			/* Base reg of Mod R/M is literal 0x00 */
-	R1,			/* Base reg of Mod R/M is literal 0x01 */
+	Op_R0,			/* Base reg of Mod R/M is literal 0x00 */
+	Op_R1,			/* Base reg of Mod R/M is literal 0x01 */
 	FRMOP,			/* Floating point R/M field with opcode */
 	FRMEX,			/* Extended floating point R/M field with opcode */
 	JUMP,			/* Jump or Call flag - no operand */
@@ -280,7 +433,7 @@ enum {
 	OPOVER,			/* Operand size override */
 	ADDOVER,		/* Address size override */
 };
-	
+
 static Optable optab0F00[8]=
 {
 [0x00]	0,0,		"MOVW	LDT,%e",
@@ -543,7 +696,7 @@ static Optable optab0F[256]=
 [0xB1]	RM,0,		"CMPXCHG%S	%r,%e",
 [0xC0]	RMB,0,		"XADDB	%r,%e",
 [0xC1]	RM,0,		"XADD%S	%r,%e",
-[0xC2]	RM,Ib,		"CMP%s	%i,%x,%X",
+[0xC2]	RM,Ib,		"CMP%s	%x,%X,%#i",
 [0xC3]	RM,0,		"MOVNTI%S	%r,%e",
 [0xC6]	RM,Ib,		"SHUF%s	%i,%x,%X",
 [0xC8]	0,0,		"BSWAP	AX",
@@ -778,7 +931,7 @@ static Optable optabD8[8+8] =
 [0x0f]	0,0,		"FDIVRD	%f,F0",
 };
 /*
- *	optabD9 and optabDB use the following encoding: 
+ *	optabD9 and optabDB use the following encoding:
  *	if (0 <= modrm <= 2) instruction = optabDx[modrm&0x07];
  *	else instruction = optabDx[(modrm&0x3f)+8];
  *
@@ -850,7 +1003,11 @@ static Optable optabDA[8+8] =
 [0x05]	0,0,		"FSUBRL	%e,F0",
 [0x06]	0,0,		"FDIVL	%e,F0",
 [0x07]	0,0,		"FDIVRL	%e,F0",
-[0x0d]	R1,0,		"FUCOMPP",
+[0x08]	0,0,		"FCMOVCS	%f,F0",
+[0x09]	0,0,		"FCMOVEQ	%f,F0",
+[0x0a]	0,0,		"FCMOVLS	%f,F0",
+[0x0b]	0,0,		"FCMOVUN	%f,F0",
+[0x0d]	Op_R1,0,		"FUCOMPP",
 };
 
 static Optable optabDB[8+64] =
@@ -860,6 +1017,12 @@ static Optable optabDB[8+64] =
 [0x03]	0,0,		"FMOVLP	F0,%e",
 [0x05]	0,0,		"FMOVX	%e,F0",
 [0x07]	0,0,		"FMOVXP	F0,%e",
+[0x08]	0,0,		"FCMOVCC	%f,F0",
+[0x09]	0,0,		"FCMOVNE	%f,F0",
+[0x0a]	0,0,		"FCMOVHI	%f,F0",
+[0x0b]	0,0,		"FCMOVNU	%f,F0",
+[0x0d]	0,0,		"FUCOMI	F0,%f",
+[0x0e]	0,0,		"FCOMI	F0,%f",
 [0x2a]	0,0,		"FCLEX",
 [0x2b]	0,0,		"FINIT",
 };
@@ -909,7 +1072,7 @@ static Optable optabDE[8+8] =
 [0x07]	0,0,		"FDIVRW	%e,F0",
 [0x08]	0,0,		"FADDDP	F0,%f",
 [0x09]	0,0,		"FMULDP	F0,%f",
-[0x0b]	R1,0,		"FCOMPDP",
+[0x0b]	Op_R1,0,		"FCOMPDP",
 [0x0c]	0,0,		"FSUBRDP F0,%f",
 [0x0d]	0,0,		"FSUBDP	F0,%f",
 [0x0e]	0,0,		"FDIVRDP F0,%f",
@@ -925,7 +1088,9 @@ static Optable optabDF[8+8] =
 [0x05]	0,0,		"FMOVL	%e,F0",
 [0x06]	0,0,		"FBSTP	%e",
 [0x07]	0,0,		"FMOVLP	F0,%e",
-[0x0c]	R0,0,		"FSTSW	%OAX",
+[0x0c]	Op_R0,0,		"FSTSW	%OAX",
+[0x0d]	0,0,		"FUCOMIP	F0,%f",
+[0x0e]	0,0,		"FCOMIP	F0,%f",
 };
 
 static Optable optabF6[8] =
@@ -967,7 +1132,7 @@ static Optable optabFF[8] =
 [0x06]	0,0,		"PUSHL	%e",
 };
 
-static Optable optable[256+1] =
+static Optable optable[256+2] =
 {
 [0x00]	RMB,0,		"ADDB	%r,%e",
 [0x01]	RM,0,		"ADD%S	%r,%e",
@@ -1222,7 +1387,8 @@ static Optable optable[256+1] =
 [0xfd]	0,0,		"STD",
 [0xfe]	RMOPB,0,	optabFE,
 [0xff]	RMOP,0,		optabFF,
-[0x100]	RM,0,		"MOVLQSX	%r,%e",
+[0x100]	RM,0,		"MOVLQSX	%e,%r",
+[0x101]	RM,0,		"MOVLQZX	%e,%r",
 };
 
 /*
@@ -1266,10 +1432,10 @@ igets(Map *map, Instr *ip, ushort *sp)
  *  get 4 bytes of the instruction
  */
 static int
-igetl(Map *map, Instr *ip, ulong *lp)
+igetl(Map *map, Instr *ip, uint32 *lp)
 {
 	ushort s;
-	long	l;
+	int32	l;
 
 	if (igets(map, ip, &s) < 0)
 		return -1;
@@ -1283,11 +1449,11 @@ igetl(Map *map, Instr *ip, ulong *lp)
 
 /*
  *  get 8 bytes of the instruction
- */
+ *
 static int
 igetq(Map *map, Instr *ip, vlong *qp)
 {
-	ulong	l;
+	uint32	l;
 	uvlong q;
 
 	if (igetl(map, ip, &l) < 0)
@@ -1299,6 +1465,7 @@ igetq(Map *map, Instr *ip, vlong *qp)
 	*qp = q;
 	return 1;
 }
+ */
 
 static int
 getdisp(Map *map, Instr *ip, int mod, int rm, int code, int pcrel)
@@ -1425,7 +1592,10 @@ newop:
 				return 0;
 		}
 		if(c == 0x63){
-			op = &obase[0x100];	/* MOVLQSX */
+			if(ip->rex&REXW)
+				op = &obase[0x100];	/* MOVLQSX */
+			else
+				op = &obase[0x101];	/* MOVLQZX */
 			goto hack;
 		}
 	}
@@ -1455,7 +1625,7 @@ badop:
 				ip->imm = c|0xffffff00;
 			else
 				ip->imm = c&0xff;
-			ip->imm64 = (long)ip->imm;
+			ip->imm64 = (int32)ip->imm;
 			ip->jumptype = Jbs;
 			break;
 		case Ibs:	/* 8-bit immediate (sign extended) */
@@ -1468,7 +1638,7 @@ badop:
 					ip->imm = c|0xff00;
 			else
 				ip->imm = c&0xff;
-			ip->imm64 = (long)ip->imm;
+			ip->imm64 = (int32)ip->imm;
 			break;
 		case Iw:	/* 16-bit immediate -> imm */
 			if (igets(map, ip, &s) < 0)
@@ -1502,7 +1672,7 @@ badop:
 					return 0;
 				ip->imm64 = ip->imm;
 				if (ip->rex & REXW) {
-					ulong l;
+					uint32 l;
 					if (igetl(map, ip, &l) < 0)
 						return 0;
 					ip->imm64 |= (uvlong)l << 32;
@@ -1544,11 +1714,11 @@ badop:
 			if (c != 0x0a)
 				goto badop;
 			break;
-		case R0:	/* base register must be R0 */
+		case Op_R0:	/* base register must be R0 */
 			if (ip->base != 0)
 				goto badop;
 			break;
-		case R1:	/* base register must be R1 */
+		case Op_R1:	/* base register must be R1 */
 			if (ip->base != 1)
 				goto badop;
 			break;
@@ -1734,14 +1904,14 @@ static char *reg[] =  {
 [DI]	"DI",
 
 	/* amd64 */
-[R8]	"R8",
-[R9]	"R9",
-[R10]	"R10",
-[R11]	"R11",
-[R12]	"R12",
-[R13]	"R13",
-[R14]	"R14",
-[R15]	"R15",
+[AMD64_R8]	"R8",
+[AMD64_R9]	"R9",
+[AMD64_R10]	"R10",
+[AMD64_R11]	"R11",
+[AMD64_R12]	"R12",
+[AMD64_R13]	"R13",
+[AMD64_R14]	"R14",
+[AMD64_R15]	"R15",
 };
 
 static char *breg[] = { "AL", "CL", "DL", "BL", "AH", "CH", "DH", "BH" };
@@ -1753,7 +1923,7 @@ static void
 plocal(Instr *ip)
 {
 	int ret;
-	long offset;
+	int32 offset;
 	Symbol s;
 	char *reg;
 
@@ -1798,10 +1968,10 @@ isjmp(Instr *ip)
  * are changed on sources.
  */
 static int
-issymref(Instr *ip, Symbol *s, long w, long val)
+issymref(Instr *ip, Symbol *s, int32 w, int32 val)
 {
 	Symbol next, tmp;
-	long isstring, size;
+	int32 isstring, size;
 
 	if (isjmp(ip))
 		return 1;
@@ -1841,7 +2011,7 @@ static void
 immediate(Instr *ip, vlong val)
 {
 	Symbol s;
-	long w;
+	int32 w;
 
 	if (findsym(val, CANY, &s)) {		/* TO DO */
 		w = val - s.value;
@@ -1849,7 +2019,7 @@ immediate(Instr *ip, vlong val)
 			w = -w;
 		if (issymref(ip, &s, w, val)) {
 			if (w)
-				bprint(ip, "%s+%lux(SB)", s.name, w);
+				bprint(ip, "%s+%#lux(SB)", s.name, w);
 			else
 				bprint(ip, "%s(SB)", s.name);
 			return;
@@ -1860,7 +2030,7 @@ immediate(Instr *ip, vlong val)
 			if (w < 0)
 				w = -w;
 			if (w < 4096) {
-				bprint(ip, "%s-%lux(SB)", s.name, w);
+				bprint(ip, "%s-%#lux(SB)", s.name, w);
 				return;
 			}
 		}
@@ -1877,11 +2047,11 @@ pea(Instr *ip)
 {
 	if (ip->mod == 3) {
 		if (ip->osize == 'B')
-			bprint(ip, (ip->rex & REXB? breg64: breg)[ip->base]);
+			bprint(ip, (ip->rex & REXB? breg64: breg)[(uchar)ip->base]);
 		else if(ip->rex & REXB)
 			bprint(ip, "%s%s", ANAME(ip), reg[ip->base+8]);
 		else
-			bprint(ip, "%s%s", ANAME(ip), reg[ip->base]);
+			bprint(ip, "%s%s", ANAME(ip), reg[(uchar)ip->base]);
 		return;
 	}
 	if (ip->segment)
@@ -1905,6 +2075,7 @@ pea(Instr *ip)
 static void
 prinstr(Instr *ip, char *fmt)
 {
+	int sharp;
 	vlong v;
 
 	if (ip->prefix)
@@ -1914,7 +2085,12 @@ prinstr(Instr *ip, char *fmt)
 			*ip->curr++ = *fmt;
 			continue;
 		}
-		switch(*++fmt){
+		sharp = 0;
+		if(*++fmt == '#') {
+			sharp = 1;
+			++fmt;
+		}
+		switch(*fmt){
 		case '%':
 			*ip->curr++ = '%';
 			break;
@@ -1938,7 +2114,8 @@ prinstr(Instr *ip, char *fmt)
 			bprint(ip,"%s", ONAME(ip));
 			break;
 		case 'i':
-			bprint(ip, "$");
+			if(!sharp)
+				bprint(ip, "$");
 			v = ip->imm;
 			if(ip->rex & REXW)
 				v = ip->imm64;
@@ -2008,9 +2185,9 @@ prinstr(Instr *ip, char *fmt)
 			break;
 		case 'p':
 			/*
-			 * signed immediate in the ulong ip->imm.
+			 * signed immediate in the uint32 ip->imm.
 			 */
-			v = (long)ip->imm;
+			v = (int32)ip->imm;
 			immediate(ip, v+ip->addr+ip->n);
 			break;
 		case 'r':
@@ -2126,7 +2303,7 @@ i386foll(Map *map, uvlong pc, Rgetter rget, uvlong *foll)
 		return 1;
 	case Iwds:		/* pc relative JUMP or CALL*/
 	case Jbs:		/* pc relative JUMP or CALL */
-		v = (long)i.imm;
+		v = (int32)i.imm;
 		foll[0] = pc+v+i.n;
 		n = 1;
 		break;
@@ -2168,7 +2345,7 @@ i386foll(Map *map, uvlong pc, Rgetter rget, uvlong *foll)
 		return 1;
 	default:
 		break;
-	}		
+	}
 	if (strncmp(op->proto,"JMP", 3) == 0 || strncmp(op->proto,"CALL", 4) == 0)
 		return 1;
 	foll[n++] = pc+i.n;

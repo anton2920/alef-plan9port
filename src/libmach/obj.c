@@ -1,3 +1,31 @@
+// Inferno libmach/obj.c
+// http://code.google.com/p/inferno-os/source/browse/utils/libmach/obj.c
+//
+// 	Copyright © 1994-1999 Lucent Technologies Inc.
+// 	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
+// 	Portions Copyright © 1997-1999 Vita Nuova Limited.
+// 	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
+// 	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
+//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 /*
  * obj.c
  * routines universal to all object files
@@ -80,12 +108,16 @@ static	void	objreset(void);
 static	void	objlookup(int, char *, int, uint);
 static	void 	objupdate(int, int);
 
+static	int	sequence;
+
 int
 objtype(Biobuf *bp, char **name)
 {
 	int i;
 	char buf[MAXIS];
+	int c;
 
+Retry:
 	if(Bread(bp, buf, MAXIS) < MAXIS)
 		return -1;
 	Bseek(bp, -MAXIS, 1);
@@ -95,6 +127,36 @@ objtype(Biobuf *bp, char **name)
 				*name = obj[i].name;
 			return i;
 		}
+	}
+
+	/*
+	 * Maybe there's an import block we need to skip
+	 */
+	for(i = 0; i < MAXIS; i++) {
+		if(isalpha(buf[i]) || isdigit(buf[i]))
+			continue;
+		if(i == 0 || buf[i] != '\n')
+			return -1;
+		break;
+	}
+
+	/*
+	 * Found one.  Skip until "\n!\n"
+	 */
+	while((c = Bgetc(bp)) != Beof) {
+		if(c != '\n')
+			continue;
+		c = Bgetc(bp);
+		if(c != '!'){
+			Bungetc(bp);
+			continue;
+		}
+		c = Bgetc(bp);
+		if(c != '\n'){
+			Bungetc(bp);
+			continue;
+		}
+		goto Retry;
 	}
 	return -1;
 }
@@ -180,7 +242,7 @@ processprog(Prog *p, int doautos)
 static void
 objlookup(int id, char *name, int type, uint sig)
 {
-	long h;
+	int32 h;
 	char *cp;
 	Sym *s;
 	Symtab *sp;
@@ -195,9 +257,7 @@ objlookup(int id, char *name, int type, uint sig)
 	h = *name;
 	for(cp = name+1; *cp; h += *cp++)
 		h *= HASHMUL;
-	if(h < 0)
-		h = ~h;
-	h &= (NHASH-1);
+	h &= NHASH-1;
 	if (type == 'U' || type == 'b' || islocal(type)) {
 		for(sp = hash[h]; sp; sp = sp->next)
 			if(strcmp(sp->s.name, name) == 0) {
@@ -235,6 +295,7 @@ objlookup(int id, char *name, int type, uint sig)
 	sp->s.type = type;
 	sp->s.sig = sig;
 	sp->s.value = islocal(type) ? MAXOFF : 0;
+	sp->s.sequence = sequence++;
 	names[id] = &sp->s;
 	sp->next = hash[h];
 	hash[h] = sp;
@@ -270,7 +331,7 @@ _offset(int id, vlong off)
 /*
  * update the type of a global text or data symbol
  */
-static void 
+static void
 objupdate(int id, int type)
 {
 	Sym *s;
@@ -291,7 +352,7 @@ nextar(Biobuf *bp, int offset, char *buf)
 {
 	struct ar_hdr a;
 	int i, r;
-	long arsize;
+	int32 arsize;
 
 	if (offset&01)
 		offset++;

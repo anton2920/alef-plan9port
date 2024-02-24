@@ -1,11 +1,11 @@
-// Inferno libmach/obj.h
-// http://code.google.com/p/inferno-os/source/browse/utils/libmach/obj.h
+// Inferno utils/libmach/ureg6.h
+// http://code.google.com/p/inferno-os/source/browse/utils/libmach/ureg6.h
 //
-// 	Copyright © 1994-1999 Lucent Technologies Inc.
-// 	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
-// 	Portions Copyright © 1997-1999 Vita Nuova Limited.
-// 	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
-// 	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
+//	Copyright © 1994-1999 Lucent Technologies Inc.
+//	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
+//	Portions Copyright © 1997-1999 Vita Nuova Limited.
+//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
+//	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
 //	Portions Copyright © 2009 The Go Authors.  All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,28 +26,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-/*
- * obj.h -- defs for dealing with object files
- */
+struct Ureg {
+	u64int	ax;
+	u64int	bx;
+	u64int	cx;
+	u64int	dx;
+	u64int	si;
+	u64int	di;
+	u64int	bp;
+	u64int	r8;
+	u64int	r9;
+	u64int	r10;
+	u64int	r11;
+	u64int	r12;
+	u64int	r13;
+	u64int	r14;
+	u64int	r15;
 
-typedef enum Kind		/* variable defs and references in obj */
-{
-	aNone,			/* we don't care about this prog */
-	aName,			/* introduces a name */
-	aText,			/* starts a function */
-	aData,			/* references to a global object */
-} Kind;
+	u16int	ds;
+	u16int	es;
+	u16int	fs;
+	u16int	gs;
 
-typedef struct	Prog	Prog;
-
-struct Prog		/* info from .$O files */
-{
-	Kind	kind;		/* what kind of symbol */
-	char	type;		/* type of the symbol: ie, 'T', 'a', etc. */
-	char	sym;		/* index of symbol's name */
-	char	*id;		/* name for the symbol, if it introduces one */
-	uint	sig;		/* type signature for symbol */
+	u64int	type;
+	u64int	error;		/* error code (or zero) */
+	u64int	ip;		/* pc */
+	u64int	cs;		/* old context */
+	u64int	flags;		/* old flags */
+	u64int	sp;		/* sp */
+	u64int	ss;		/* old stack segment */
 };
-
-#define UNKNOWN	'?'
-void		_offset(int, vlong);

@@ -1,11 +1,11 @@
-// Inferno libmach/obj.h
-// http://code.google.com/p/inferno-os/source/browse/utils/libmach/obj.h
+// Inferno utils/libmach/ureg8.h
+// http://code.google.com/p/inferno-os/source/browse/utils/libmach/ureg8.h
 //
-// 	Copyright © 1994-1999 Lucent Technologies Inc.
-// 	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
-// 	Portions Copyright © 1997-1999 Vita Nuova Limited.
-// 	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
-// 	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
+//	Copyright © 1994-1999 Lucent Technologies Inc.
+//	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
+//	Portions Copyright © 1997-1999 Vita Nuova Limited.
+//	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
+//	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
 //	Portions Copyright © 2009 The Go Authors.  All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,28 +26,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-/*
- * obj.h -- defs for dealing with object files
- */
-
-typedef enum Kind		/* variable defs and references in obj */
+struct Ureg
 {
-	aNone,			/* we don't care about this prog */
-	aName,			/* introduces a name */
-	aText,			/* starts a function */
-	aData,			/* references to a global object */
-} Kind;
-
-typedef struct	Prog	Prog;
-
-struct Prog		/* info from .$O files */
-{
-	Kind	kind;		/* what kind of symbol */
-	char	type;		/* type of the symbol: ie, 'T', 'a', etc. */
-	char	sym;		/* index of symbol's name */
-	char	*id;		/* name for the symbol, if it introduces one */
-	uint	sig;		/* type signature for symbol */
+	uint32	di;		/* general registers */
+	uint32	si;		/* ... */
+	uint32	bp;		/* ... */
+	uint32	nsp;
+	uint32	bx;		/* ... */
+	uint32	dx;		/* ... */
+	uint32	cx;		/* ... */
+	uint32	ax;		/* ... */
+	uint32	gs;		/* data segments */
+	uint32	fs;		/* ... */
+	uint32	es;		/* ... */
+	uint32	ds;		/* ... */
+	uint32	trap;		/* trap type */
+	uint32	ecode;		/* error code (or zero) */
+	uint32	pc;		/* pc */
+	uint32	cs;		/* old context */
+	uint32	flags;		/* old flags */
+	union {
+		uint32	usp;
+		uint32	sp;
+	};
+	uint32	ss;		/* old stack segment */
 };
-
-#define UNKNOWN	'?'
-void		_offset(int, vlong);

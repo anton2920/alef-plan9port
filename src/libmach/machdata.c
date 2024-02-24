@@ -1,3 +1,31 @@
+// Inferno libmach/machdata.c
+// http://code.google.com/p/inferno-os/source/browse/utils/libmach/machdata.c
+//
+// 	Copyright © 1994-1999 Lucent Technologies Inc.
+// 	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
+// 	Portions Copyright © 1997-1999 Vita Nuova Limited.
+// 	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
+// 	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
+//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 /*
  * Debugger utilities shared by at least two architectures
  */
@@ -70,7 +98,7 @@ symoff(char *buf, int n, uvlong v, int space)
 {
 	Symbol s;
 	int r;
-	long delta;
+	int32 delta;
 
 	r = delta = 0;		/* to shut compiler up */
 	if (v) {
@@ -85,7 +113,7 @@ symoff(char *buf, int n, uvlong v, int space)
 	if (s.type != 't' && s.type != 'T' && delta >= 4096)
 		return snprint(buf, n, "%llux", v);
 	else if (delta)
-		return snprint(buf, n, "%s+%lux", s.name, delta);
+		return snprint(buf, n, "%s+%#lux", s.name, delta);
 	else
 		return snprint(buf, n, "%s", s.name);
 }
@@ -104,7 +132,7 @@ int
 fpformat(Map *map, Reglist *rp, char *buf, int n, int modif)
 {
 	char reg[12];
-	ulong r;
+	uint32 r;
 
 	switch(rp->rformat)
 	{
@@ -122,7 +150,7 @@ fpformat(Map *map, Reglist *rp, char *buf, int n, int modif)
 			if (rp->rformat == 'F')
 				return 1;
 			return 2;
-		}	
+		}
 			/* treat it like 'f' */
 		if (get1(map, rp->roffs, (uchar *)reg, 4) < 0)
 			return -1;
@@ -152,9 +180,9 @@ fpformat(Map *map, Reglist *rp, char *buf, int n, int modif)
 }
 
 char *
-_hexify(char *buf, ulong p, int zeros)
+_hexify(char *buf, uint32 p, int zeros)
 {
-	ulong d;
+	uint32 d;
 
 	d = p/16;
 	if(d)
@@ -172,7 +200,7 @@ _hexify(char *buf, ulong p, int zeros)
  * double format.  Naive but workable, probably.
  */
 int
-ieeedftos(char *buf, int n, ulong h, ulong l)
+ieeedftos(char *buf, int n, uint32 h, uint32 l)
 {
 	double fr;
 	int exp;
@@ -210,7 +238,7 @@ ieeedftos(char *buf, int n, ulong h, ulong l)
 }
 
 int
-ieeesftos(char *buf, int n, ulong h)
+ieeesftos(char *buf, int n, uint32 h)
 {
 	double fr;
 	int exp;
@@ -245,25 +273,25 @@ ieeesftos(char *buf, int n, ulong h)
 int
 beieeesftos(char *buf, int n, void *s)
 {
-	return ieeesftos(buf, n, beswal(*(ulong*)s));
+	return ieeesftos(buf, n, beswal(*(uint32*)s));
 }
 
 int
 beieeedftos(char *buf, int n, void *s)
 {
-	return ieeedftos(buf, n, beswal(*(ulong*)s), beswal(((ulong*)(s))[1]));
+	return ieeedftos(buf, n, beswal(*(uint32*)s), beswal(((uint32*)(s))[1]));
 }
 
 int
 leieeesftos(char *buf, int n, void *s)
 {
-	return ieeesftos(buf, n, leswal(*(ulong*)s));
+	return ieeesftos(buf, n, leswal(*(uint32*)s));
 }
 
 int
 leieeedftos(char *buf, int n, void *s)
 {
-	return ieeedftos(buf, n, leswal(((ulong*)(s))[1]), leswal(*(ulong*)s));
+	return ieeedftos(buf, n, leswal(((uint32*)(s))[1]), leswal(*(uint32*)s));
 }
 
 /* packed in 12 bytes, with s[2]==s[3]==0; mantissa starts at s[4]*/
@@ -272,7 +300,7 @@ beieee80ftos(char *buf, int n, void *s)
 {
 	uchar *reg = (uchar*)s;
 	int i;
-	ulong x;
+	uint32 x;
 	uchar ieee[8+8];	/* room for slop */
 	uchar *p, *q;
 

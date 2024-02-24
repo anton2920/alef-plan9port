@@ -1,14 +1,43 @@
+// Inferno libmach/elf.h
+// http://code.google.com/p/inferno-os/source/browse/utils/libmach/elf.h
+//
+// 	Copyright © 1994-1999 Lucent Technologies Inc.
+// 	Power PC support Copyright © 1995-2004 C H Forsyth (forsyth@terzarima.net).
+// 	Portions Copyright © 1997-1999 Vita Nuova Limited.
+// 	Portions Copyright © 2000-2007 Vita Nuova Holdings Limited (www.vitanuova.com).
+// 	Revisions Copyright © 2000-2004 Lucent Technologies Inc. and others.
+//	Portions Copyright © 2009 The Go Authors.  All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 /*
- *	Definitions needed for accessing ELF headers
+ *	Definitions needed for  accessing ELF headers.
+ *	32-bit and 64-bit structs differ.
  */
 typedef struct {
 	uchar	ident[16];	/* ident bytes */
 	ushort	type;		/* file type */
 	ushort	machine;	/* target machine */
 	int	version;	/* file version */
-	ulong	elfentry;	/* start address */
-	ulong	phoff;		/* phdr file offset */
-	ulong	shoff;		/* shdr file offset */
+	uint32	elfentry;	/* start address */
+	uint32	phoff;		/* phdr file offset */
+	uint32	shoff;		/* shdr file offset */
 	int	flags;		/* file flags */
 	ushort	ehsize;		/* sizeof ehdr */
 	ushort	phentsize;	/* sizeof phdr */
@@ -16,72 +45,72 @@ typedef struct {
 	ushort	shentsize;	/* sizeof shdr */
 	ushort	shnum;		/* number shdrs */
 	ushort	shstrndx;	/* shdr string index */
-} Ehdr;
+} Ehdr32;
 
 typedef struct {
-	u8int	ident[16];	/* ident bytes */
-	u16int	type;		/* file type */
-	u16int	machine;	/* target machine */
-	u32int	version;	/* file version */
-	u64int	elfentry;	/* start address */
-	u64int	phoff;		/* phdr file offset */
-	u64int	shoff;		/* shdr file offset */
-	u32int	flags;		/* file flags */
-	u16int	ehsize;		/* sizeof ehdr */
-	u16int	phentsize;	/* sizeof phdr */
-	u16int	phnum;		/* number phdrs */
-	u16int	shentsize;	/* sizeof shdr */
-	u16int	shnum;		/* number shdrs */
-	u16int	shstrndx;	/* shdr string index */
-} E64hdr;
+	uchar	ident[16];	/* ident bytes */
+	ushort	type;		/* file type */
+	ushort	machine;	/* target machine */
+	int	version;	/* file version */
+	uvlong	elfentry;	/* start address */
+	uvlong	phoff;		/* phdr file offset */
+	uvlong	shoff;		/* shdr file offset */
+	int	flags;		/* file flags */
+	ushort	ehsize;		/* sizeof ehdr */
+	ushort	phentsize;	/* sizeof phdr */
+	ushort	phnum;		/* number phdrs */
+	ushort	shentsize;	/* sizeof shdr */
+	ushort	shnum;		/* number shdrs */
+	ushort	shstrndx;	/* shdr string index */
+} Ehdr64;
 
 typedef struct {
 	int	type;		/* entry type */
-	ulong	offset;		/* file offset */
-	ulong	vaddr;		/* virtual address */
-	ulong	paddr;		/* physical address */
+	uint32	offset;		/* file offset */
+	uint32	vaddr;		/* virtual address */
+	uint32	paddr;		/* physical address */
 	int	filesz;		/* file size */
-	ulong	memsz;		/* memory size */
+	uint32	memsz;		/* memory size */
 	int	flags;		/* entry flags */
 	int	align;		/* memory/file alignment */
-} Phdr;
+} Phdr32;
 
 typedef struct {
-	u32int	type;		/* entry type */
-	u32int	flags;		/* entry flags */
-	u64int	offset;		/* file offset */
-	u64int	vaddr;		/* virtual address */
-	u64int	paddr;		/* physical address */
-	u64int	filesz;		/* file size */
-	u64int	memsz;		/* memory size */
-	u64int	align;		/* memory/file alignment */
-} P64hdr;
+	int	type;		/* entry type */
+	int	flags;		/* entry flags */
+	uvlong	offset;		/* file offset */
+	uvlong	vaddr;		/* virtual address */
+	uvlong	paddr;		/* physical address */
+	uvlong	filesz;		/* file size */
+	uvlong	memsz;		/* memory size */
+	uvlong	align;		/* memory/file alignment */
+} Phdr64;
 
 typedef struct {
-	ulong	name;		/* section name */
-	ulong	type;		/* SHT_... */
-	ulong	flags;		/* SHF_... */
-	ulong	addr;		/* virtual address */
-	ulong	offset;		/* file offset */
-	ulong	size;		/* section size */
-	ulong	link;		/* misc info */
-	ulong	info;		/* misc info */
-	ulong	addralign;	/* memory alignment */
-	ulong	entsize;	/* entry size if table */
-} Shdr;
+	uint32	name;		/* section name */
+	uint32	type;		/* SHT_... */
+	uint32	flags;		/* SHF_... */
+	uint32	addr;		/* virtual address */
+	uint32	offset;		/* file offset */
+	uint32	size;		/* section size */
+	uint32	link;		/* misc info */
+	uint32	info;		/* misc info */
+	uint32	addralign;	/* memory alignment */
+	uint32	entsize;	/* entry size if table */
+} Shdr32;
 
 typedef struct {
-	u32int	name;		/* section name */
-	u32int	type;		/* SHT_... */
-	u64int	flags;		/* SHF_... */
-	u64int	addr;		/* virtual address */
-	u64int	offset;		/* file offset */
-	u64int	size;		/* section size */
-	u32int	link;		/* misc info */
-	u32int	info;		/* misc info */
-	u64int	addralign;	/* memory alignment */
-	u64int	entsize;	/* entry size if table */
-} S64hdr;
+	uint32	name;		/* section name */
+	uint32	type;		/* SHT_... */
+	uvlong	flags;		/* SHF_... */
+	uvlong	addr;		/* virtual address */
+	uvlong	offset;		/* file offset */
+	uvlong	size;		/* section size */
+	uint32	link;		/* misc info */
+	uint32	info;		/* misc info */
+	uvlong	addralign;	/* memory alignment */
+	uvlong	entsize;	/* entry size if table */
+} Shdr64;
 
 enum {
 	/* Ehdr codes */
@@ -119,13 +148,10 @@ enum {
 	I860 = 7,		/* Intel i860 */
 	MIPS = 8,		/* Mips R2000 */
 	S370 = 9,		/* Amdhal	*/
-	MIPSR4K = 10,		/* Mips R4000 */
 	SPARC64 = 18,		/* Sun SPARC v9 */
 	POWER = 20,		/* PowerPC */
-	POWER64 = 21,		/* PowerPC64 */
-	ARM = 40,		/* ARM */
+	ARM = 40,			/* ARM */
 	AMD64 = 62,		/* Amd64 */
-	ARM64 = 183,		/* ARM64 */
 
 	NO_VERSION = 0,		/* version, ident[VERSION] */
 	CURRENT = 1,

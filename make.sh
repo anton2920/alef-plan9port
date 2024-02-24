@@ -34,10 +34,10 @@ targets()
 {
 	target src/lib9 $1
 	target src/libbio $1
-	# target src/libmach $1
+	target src/libmach $1
 	target src/cmd/8l $1
 	target src/cmd/8a $1
-	# target src/cmd/ar $1
+	target src/cmd/ar $1
 
 	target src/alef/8 $1
 	# target src/alef/lib/386 $1
