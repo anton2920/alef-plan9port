@@ -1,6 +1,3 @@
-#pragma src "/sys/src/alef/lib"
-#pragma lib "/$M/lib/alef/libA.a"
-
 /*
  *	definitions common to Plan 9 & Unix
  */

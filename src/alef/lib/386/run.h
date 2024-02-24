@@ -2,8 +2,8 @@
 
 enum
 {
-	Ptab		= 0xbfff5000,	/* Private stack */
-	Execstk		= 0xbf001000,	/* Exec stack linkage area */
+	Ptab		= 0xffff5000,	/* Private stack */
+	Execstk		= 0xff001000,	/* Exec stack linkage area */
 };
 
 /*

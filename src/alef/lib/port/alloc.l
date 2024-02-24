@@ -18,7 +18,7 @@ aggr Bucket
 aggr Arena
 {
 	Lock;
-	Bucket*	btab;	
+	Bucket*	btab;
 };
 
 intern Arena arena[MAX2SIZE];
@@ -88,7 +88,7 @@ good:
 			raise;
 	}
 	a->unlock();
-		
+
 	bp->size = pow;
 	bp->magic = MAGIC;
 
