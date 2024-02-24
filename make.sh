@@ -40,7 +40,7 @@ targets()
 	target src/cmd/ar $1
 
 	target src/alef/8 $1
-	# target src/alef/lib/386 $1
+	target src/alef/lib/rt $1
 }
 
 STARTTIME=`date +%s`

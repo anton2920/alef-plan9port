@@ -20,12 +20,12 @@ STARTTIME=`date +%s`
 
 case $1 in
 	'')
-		for file in `echo *.l ../port/*.l ../p9/*.l`; do
-			run ../../../../bin/8al -I../../../../include/alef $file
+		for file in `echo *.l ../386/*.l ../p9/*.l ../port/*.l ../sys/*.l`; do
+			run ../../../../bin/8al -I../386 -I../../../../include/alef $file
 		done
 		cp ../port/crypt.8.save crypt.8
 
-		for file in `echo *.s`; do
+		for file in `echo ../386/*.s ../sys/*.s`; do
 			run ../../../../bin/8a $file
 		done
 
