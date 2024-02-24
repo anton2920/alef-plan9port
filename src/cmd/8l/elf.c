@@ -6,9 +6,10 @@
 
 enum {
 	/* offsets into string table */
-	Stitext		= 1,
-	Stidata		= 7,
-	Stistrtab	= 13,
+	Stitext	= 1,
+	Stidata	= 7,
+	Stibss	= 13,
+	Stistrtab	= 18,
 };
 
 void
@@ -38,7 +39,9 @@ elfstrtab(void)
 	cput(0);
 	strnput(".data", 5);		/* +7 */
 	cput(0);
-	strnput(".strtab", 7);		/* +13 */
+	strnput(".bss", 4);		/* +13 */
+	cput(0);
+	strnput(".strtab", 7);		/* +18 */
 	cput(0);
 	cput(0);
 }
@@ -80,12 +83,27 @@ elf32sectab(void (*putl)(long))
 	seek(cout, HEADR+textsize+datsize+symsize, 0);
 	elf32shdr(putl, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0);
-	elf32shdr(putl, Stitext, Progbits, Salloc|Sexec, INITTEXT,
-		HEADR, textsize, 0, 0, INITRND, 0);
-	elf32shdr(putl, Stidata, Progbits, Salloc|Swrite, INITDAT,
-		HEADR+textsize, datsize, 0, 0, INITRND, 0);
+
+	ulong fo = HEADR;
+	ulong va = INITTEXT & ~((vlong)INITRND - 1) + HEADR;
+	ulong w = textsize;
+	elf32shdr(putl, Stitext, Progbits, Salloc|Sexec, va,
+		fo, w, 0, 0, INITRND, 0);
+
+	fo = rnd(fo+w, INITRND);
+	va = INITDAT;
+	w = datsize;
+	elf32shdr(putl, Stidata, Progbits, Salloc|Swrite, va,
+		fo, w, 0, 0, INITRND, 0);
+
+	fo += w;
+	va += w;
+	w = bsssize;
+	elf32shdr(putl, Stibss, Nobits, Salloc|Swrite, va,
+		fo, w, 0, 0, INITRND, 0);
+
 	elf32shdr(putl, Stistrtab, Strtab, 1 << 5, 0,
-		HEADR+textsize+datsize+symsize+4*Shdr32sz, 22, 0, 0, 1, 0);
+		HEADR+textsize+datsize+symsize+5*Shdr32sz, 27, 0, 0, 1, 0);
 	elfstrtab();
 }
 
@@ -123,8 +141,8 @@ elf32(int mach, int bo, int addpsects, void (*putpsects)(Putl))
 	putw(3 + addpsects);		/* # of Phdrs */
 	putw(Shdr32sz);
 	if (debug['S']){
-		putw(4);		/* # of Shdrs */
-		putw(3);		/* Shdr table index */
+		putw(5);		/* # of Shdrs */
+		putw(4);		/* Shdr table index */
 	}else{
 		putw(0);
 		putw(0);
@@ -135,15 +153,19 @@ elf32(int mach, int bo, int addpsects, void (*putpsects)(Putl))
 	ulong va = INITTEXT & ~((vlong)INITRND - 1);
 	ulong pa = INITTEXTP & ~((vlong)INITRND - 1);
 	ulong w = HEADR+textsize;
-	elf32phdr(putl, PT_LOAD, fo, va, pa, w, w, R|X, INITRND);	/* text */
+	elf32phdr(putl, PT_LOAD, fo, va, pa,
+		w, w, R|X, INITRND);	/* text */
 
 	fo = rnd(fo+w, INITRND);
-	va = rnd(va+w, INITRND);
+	va = INITDAT;
 	pa = INITDAT - (INITTEXT - INITTEXTP);
 	w = datsize;
-	elf32phdr(putl, PT_LOAD, fo, va, pa, w, w+bsssize, R|W, INITRND);	/* data */
+	elf32phdr(putl, PT_LOAD, fo, va, pa,
+		w, w+bsssize, R|W, INITRND);	/* data */
+
 	elf32phdr(putl, NOPTYPE, HEADR+textsize+datsize, 0, 0,
 		symsize, lcsize, R, 4);	/* symbol table */
+
 	if (addpsects > 0)
 		putpsects(putl);
 	cflush();
@@ -161,14 +183,14 @@ elf64phdr(void (*putl)(long), void (*putll)(vlong), ulong type, uvlong off,
 	uvlong vaddr, uvlong paddr, uvlong filesz, uvlong memsz, ulong prots,
 	uvlong align)
 {
-	putl(type);		
-	putl(prots);		
-	putll(off);		
-	putll(vaddr);	
-	putll(paddr);	
-	putll(filesz);	
-	putll(memsz);	
-	putll(align);		
+	putl(type);
+	putl(prots);
+	putll(off);
+	putll(vaddr);
+	putll(paddr);
+	putll(filesz);
+	putll(memsz);
+	putll(align);
 }
 
 void

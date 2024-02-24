@@ -3,7 +3,7 @@
 #include	<ar.h>
 
 #ifndef	DEFAULT
-#define	DEFAULT	'9'
+#define	DEFAULT	'E'
 #endif
 
 char	*noname		= "<none>";
@@ -134,7 +134,7 @@ main(int argc, char *argv[])
 	USED(argc);
 	if(*argv == 0)
 		usage();
-	if(!debug['9'] && !debug['U'] && !debug['B'])
+	if(!debug['9'] && !debug['U'] && !debug['B'] && !debug['E'])
 		debug[DEFAULT] = 1;
 	a = getenv("ccroot");
 	if(a != nil && *a != '\0') {
@@ -153,6 +153,8 @@ main(int argc, char *argv[])
 			HEADTYPE = 2;
 		if(debug['9'])
 			HEADTYPE = 2;
+		if(debug['E'])
+			HEADTYPE= 5;
 	}
 	switch(HEADTYPE) {
 	default:
