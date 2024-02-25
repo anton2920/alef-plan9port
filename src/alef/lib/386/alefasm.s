@@ -17,7 +17,7 @@
 	RET
 
 /*
- *	Return R1 which at func entry contains 
+ *	Return R1 which at func entry contains
  *	a pointer to the return complex
  */
 	TEXT	ALEF_getrp(SB), 1, $-4
@@ -54,11 +54,6 @@ nofree:
 	CALL	*AX
 	PUSHL	$0
 	CALL	terminate(SB)
-	RET
-
-	TEXT	abort(SB), 1, $0
-	MOVL	$0, AX
-	MOVL	AX, 0(AX)
 	RET
 
 	TEXT	tas(SB), 1, $0

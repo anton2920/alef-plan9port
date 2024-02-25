@@ -128,7 +128,9 @@ intern byte *_error_strings[] = {
 byte *
 strerror(int errno)
 {
-	if ((errno > 0) && (errno < ELAST)) {
+	if (errno == 0) {
+		return "";
+	} else if (errno < ELAST) {
 		return _error_strings[errno];
 	} else {
 		return "<UNDEFINED ERROR>";

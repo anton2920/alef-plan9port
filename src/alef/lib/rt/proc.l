@@ -15,7 +15,7 @@ ALEF_proc(void (*f)(void), int argsize, ...)
 	Task *t;
 	Tdb *tdb;
 	int spin;
-	byte *stack;
+	byte *stack, *syserrstr;
 
 	stack = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb), 0);
 	if(stack == nil)
@@ -44,9 +44,15 @@ ALEF_proc(void (*f)(void), int argsize, ...)
 
 	ALEFnproc.inc();
 
+	syserrstr = ALEFalloc(ERRLEN, 0);
+	if (syserrstr == nil)
+		abort();
+	syserrstr[0] = '\0';
+
 	spin = 1;
 	if(rfork(ALEFrfflag) == 0) {
 		PROC.tdb = tdb;
+		PROC.syserrstr = syserrstr;
 		ALEF_linksp(&spin, stack, f);
 	}
 

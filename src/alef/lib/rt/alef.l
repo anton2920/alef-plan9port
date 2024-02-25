@@ -23,7 +23,7 @@ ALEF_init(int argc, byte **argv)
 	Task *t;
 	int i;
 	uint ssize, *rp;
-	byte *stack, *sp;
+	byte *stack, *sp, *syserrstr;
 
 	if(ALEFstack == 0)
 		ALEFstack = 16000;
@@ -80,8 +80,17 @@ ALEF_init(int argc, byte **argv)
 	}
 	*rp = 0;
 
+	/*
+	 * per process error buffer
+	 */
+	syserrstr = ALEFalloc(ERRLEN, 0);
+	if (syserrstr == nil)
+		abort();
+	syserrstr[0] = '\0';
+
 	ALEFnproc.inc();
 	PROC.tdb = tdb;
+	PROC.syserrstr = syserrstr;
 	ALEF_linksp(&i, sp, main);
 }
 

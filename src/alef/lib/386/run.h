@@ -105,5 +105,6 @@ aggr Tdb
 aggr Proc
 {
 	Tdb	*tdb;
+	byte	*syserrstr;
 };
 #define	PROC		(*((Proc*)Ptab))
