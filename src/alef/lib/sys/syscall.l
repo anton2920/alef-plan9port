@@ -23,12 +23,19 @@ getsyserr(void)
 
 
 void
+_exit(int code)
+{
+	syscall(SYS_exit, code, 0, 0);
+}
+
+
+void
 _exits(byte *s)
 {
 	if ((s == nil) || (*s == 0)) {
-		syscall(SYS_exit, 0, 0, 0);
+		_exit(0);
 	}
-	syscall(SYS_exit, 1, 0, 0);
+	_exit(1);
 }
 
 
