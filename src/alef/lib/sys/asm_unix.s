@@ -2,7 +2,7 @@
 (int, int, int)
 syscall(int, int, int, int);
 */
-TEXT syscall(SB), $20
+TEXT syscall(SB), 1, $20
 	/* NOTE(anton2920): saving return tuple address. */
 	MOVL	AX, 16(SP)
 
@@ -35,7 +35,7 @@ ok1:
 (int, int, int)
 syscall6(int, int, int, int, int, int, int);
 */
-TEXT	syscall6(SB), $32
+TEXT	syscall6(SB), 1, $32
 	/* NOTE(anton2920): saving return tuple address. */
 	MOVL	AX, 28(SP)
 
@@ -71,7 +71,7 @@ ok2:
 (int, int, int)
 syscall9(int, int, int, int, int, int, int, int, int, int);
 */
-TEXT	syscall9(SB), $44
+TEXT	syscall9(SB), 1, $44
 	/* NOTE(anton2920): saving return tuple address. */
 	MOVL	AX, 40(SP)
 
