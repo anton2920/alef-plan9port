@@ -346,7 +346,6 @@ aggr Tm
  *	Plan 9 system calls
  */
 int	bind(byte*, byte*, int);
-int	brk_(void*);
 int	create(byte*, int, uint);
 int	dup(int, int);
 int	fauth(int, byte*);
