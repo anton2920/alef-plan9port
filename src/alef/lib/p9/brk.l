@@ -28,7 +28,7 @@ sbrk(uint n)
 {
 	void * base;
 
-	n = n + (n & (4096 - 1));
+	n = (n + (4096 - 1)) & ~(4096 - 1);
 
 	bloc.lock();
 	rescue {
