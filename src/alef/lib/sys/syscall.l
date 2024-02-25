@@ -101,6 +101,7 @@ mmap(void *addr, uint len, int prot, int flags, int fd, int offset)
 int
 rendezvous(void *a, uint b)
 {
+	werrstr("not implemented");
 	check 0, "not implemented";
 	return - 1;
 }
@@ -109,9 +110,9 @@ rendezvous(void *a, uint b)
 int
 rfork(int flags)
 {
-	int	r2, errno;
-	(nil, r2, _errno) = syscall(SYS_rfork, flags, 0, 0);
-	return r2;
+	int	r1, errno;
+	(r1, nil, _errno) = syscall(SYS_rfork, flags, 0, 0);
+	return r1;
 }
 
 
