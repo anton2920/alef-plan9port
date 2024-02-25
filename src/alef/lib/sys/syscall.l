@@ -1,3 +1,4 @@
+#include <alef.h>
 #include <sys/syscall.h>
 
 (int, int, int)
@@ -9,7 +10,17 @@ syscall6(int, int, int, int, int, int, int);
 (int, int, int)
 syscall9(int, int, int, int, int, int, int, int, int, int);
 
-intern int _errno;
+byte*	strerror(int);
+
+intern int	_errno;
+intern byte	_syserr[ERRLEN];
+
+intern byte *
+getsyserr(void)
+{
+	return _syserr;
+}
+
 
 void
 _exits(byte *s)
@@ -21,9 +32,28 @@ _exits(byte *s)
 }
 
 
-int
-errstr(byte *err)
+void
+rerrstr(byte *err, uint n)
 {
+	byte * syserr;
+
+	syserr = getsyserr();
+	strcpy(syserr, strerror(_errno));
+	strncpy(err, syserr, n);
+}
+
+
+int
+errstr(byte *err, uint n)
+{
+	byte tmp[ERRLEN];
+	byte * syserr;
+
+	strncpy(tmp, err, n);
+	rerrstr(err, n);
+	syserr = getsyserr();
+	strncpy(syserr, tmp, ERRLEN);
+	_errno = 0;
 	return 0;
 }
 

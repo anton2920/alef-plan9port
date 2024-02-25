@@ -93,7 +93,7 @@ ALEFassert(byte *locn, byte *mesg)
 {
 	byte err[ERRLEN];
 
-	errstr(err);
+	errstr(err, ERRLEN);
 	write(2, locn, strlen(locn));
 	write(2, " ", 1);
 	write(2, mesg, strlen(mesg));

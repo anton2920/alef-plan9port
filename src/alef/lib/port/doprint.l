@@ -422,7 +422,7 @@ rconv(Printspec *p)
 	byte buf[ERRLEN];
 
 	buf[0] = 0;
-	errstr(buf);
+	errstr(buf, ERRLEN);
 	strconv(p, buf);
 	return 0;
 }

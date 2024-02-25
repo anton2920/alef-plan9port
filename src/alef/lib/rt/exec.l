@@ -15,7 +15,7 @@ ALEF_etrans(byte *name, byte **argv)
 	free(s);
 	ALEF_lockrele();
 	_exec(name, argv);
-	errstr(e);
+	errstr(e, ERRLEN);
 	_exits(e);
 }
 

@@ -42,7 +42,7 @@ int	atoi(byte*);
 int	brk(void*);
 int	chdir(byte*);
 int	close(int);
-int	errstr(byte*);
+int	errstr(byte*, uint);
 int	exec(byte*, byte**);
 int	execl(byte*, ...);
 void	exits(byte*);
