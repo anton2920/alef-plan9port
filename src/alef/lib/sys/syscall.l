@@ -6,6 +6,9 @@ syscall(int, int, int, int);
 (int, int, int)
 syscall6(int, int, int, int, int, int, int);
 
+(int, int, int)
+syscall9(int, int, int, int, int, int, int, int, int, int);
+
 intern int _errno;
 
 void
@@ -30,7 +33,7 @@ mmap(void *addr, uint len, int prot, int flags, int fd, int offset)
 {
 	int	r1, errno;
 
-	(r1, nil, errno) = syscall6(SYS_mmap, (int)addr, len, prot, flags, fd, offset);
+	(r1, nil, errno) = syscall9(SYS_mmap, (int)addr, len, prot, flags, fd, offset, 0, 0, 0);
 	_errno = errno;
 
 	return (void * )r1;
