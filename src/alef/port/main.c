@@ -134,7 +134,6 @@ main(int argc, char *argv[])
 		warn(0, "-o ignored");
 		Owarn--;
 	}
-	flag['f']++;
 
 	nproc = 4;
 	p = getenv("NPROC");
