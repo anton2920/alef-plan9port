@@ -61,11 +61,8 @@ errstr(byte *err, uint n)
 void*
 mmap(void *addr, uint len, int prot, int flags, int fd, int offset)
 {
-	int	r1, errno;
-
-	(r1, nil, errno) = syscall9(SYS_mmap, (int)addr, len, prot, flags, fd, offset, 0, 0, 0);
-	_errno = errno;
-
+	int	r1;
+	(r1, nil, _errno) = syscall9(SYS_mmap, (int)addr, len, prot, flags, fd, offset, 0, 0, 0);
 	return (void * )r1;
 }
 
@@ -78,13 +75,19 @@ rendezvous(void *a, uint b)
 
 
 int
+rfork(int flags)
+{
+	int	r2, errno;
+	(nil, r2, _errno) = syscall(SYS_rfork, flags, 0, 0);
+	return r2;
+}
+
+
+int
 write(int fd, void *buf, int n)
 {
-	int	r1, errno;
-
-	(r1, nil, errno) = syscall(SYS_write, fd, (int)buf, n);
-	_errno = errno;
-
+	int	r1;
+	(r1, nil, _errno) = syscall(SYS_write, fd, (int)buf, n);
 	return r1;
 }
 
