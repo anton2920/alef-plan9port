@@ -14,7 +14,7 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 {
 	Task *t;
 	Tdb *tdb;
-	byte *st;
+	byte *st, *syserrstr;
 	int *semap;
 	int id, nid, sema;
 
@@ -23,7 +23,7 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 
 	id = 0;
 	while(n) {
-		st = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb), 0);
+		st = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb)+ERRLEN, 0);
 		*stack++ = st+ALEFstack;
 
 		memset(st, 0, sizeof(Task)+sizeof(Tdb));
@@ -32,10 +32,14 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 		st += sizeof(Task);
 
 		tdb = (Tdb*)st;
+		st += sizeof(Tdb);
 		tdb->ntask = 1;
 		tdb->runhd = nil;
 		tdb->ctask = t;
 		t->tdb = tdb;
+
+		syserrstr = st;
+		syserrstr[0] = '\0';
 
 		sema = 1;
 		/*
@@ -46,6 +50,7 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 		nid = id;
 		if(rfork(RFNOWAIT|RFMEM|RFPROC) == 0) {
 			PROC.tdb = tdb;
+			PROC.syserrstr = syserrstr;
 			*semap = 0;
 			return nid;
 		}

@@ -43,7 +43,7 @@ ALEF_init(int argc, byte **argv)
 	/*
 	 * Link to stack in shared memory
 	 */
-	stack = ALEFalloc(ALEFstack+ssize+sizeof(Task)+sizeof(Tdb), 0);
+	stack = ALEFalloc(ALEFstack+ssize+sizeof(Task)+sizeof(Tdb)+ERRLEN, 0);
 	if(stack == nil)
 		abort();
 
@@ -62,6 +62,10 @@ ALEF_init(int argc, byte **argv)
 	tdb->ctask = t;
 	t->tdb = tdb;
 
+	syserrstr = stack;
+	syserrstr[0] = '\0';
+	stack += ERRLEN;
+
 	/*
 	 * build argv/argc
 	 */
@@ -79,14 +83,6 @@ ALEF_init(int argc, byte **argv)
 		stack += strlen(argv[i])+1;
 	}
 	*rp = 0;
-
-	/*
-	 * per process error buffer
-	 */
-	syserrstr = ALEFalloc(ERRLEN, 0);
-	if (syserrstr == nil)
-		abort();
-	syserrstr[0] = '\0';
 
 	ALEFnproc.inc();
 	PROC.tdb = tdb;

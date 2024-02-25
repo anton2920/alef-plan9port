@@ -17,7 +17,7 @@ ALEF_proc(void (*f)(void), int argsize, ...)
 	int spin;
 	byte *stack, *syserrstr;
 
-	stack = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb), 0);
+	stack = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb)+ERRLEN, 0);
 	if(stack == nil)
 		abort();
 
@@ -33,6 +33,10 @@ ALEF_proc(void (*f)(void), int argsize, ...)
 	tdb->ctask = t;
 	t->tdb = tdb;
 
+	syserrstr = stack;
+	syserrstr[0] = '\0';
+	stack += ERRLEN;
+
 	if(MAXBECOME > argsize)
 		argsize = MAXBECOME;
 
@@ -43,11 +47,6 @@ ALEF_proc(void (*f)(void), int argsize, ...)
 	memmove(stack, ..., argsize);
 
 	ALEFnproc.inc();
-
-	syserrstr = ALEFalloc(ERRLEN, 0);
-	if (syserrstr == nil)
-		abort();
-	syserrstr[0] = '\0';
 
 	spin = 1;
 	if(rfork(ALEFrfflag) == 0) {
