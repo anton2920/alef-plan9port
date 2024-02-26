@@ -11,6 +11,11 @@ Ref	ALEFnproc;
 void	main(int, byte*);
 void	ALEF_lockinit(void);
 
+/* NOTE(anton2920): since on FreeBSD 'RFMEM' copies the entire address space, we need a way to store per-process data without overwriting anything. */
+Lock	ProcLock;
+Proc	Procs[Nprocs];
+int	CurrProc;
+
 /*
  * Build argv/argc on shared memory stack.  Link the process stack into
  * shared memory and call main.
@@ -85,8 +90,7 @@ ALEF_init(int argc, byte **argv)
 	*rp = 0;
 
 	ALEFnproc.inc();
-	PROC.tdb = tdb;
-	PROC.syserrstr = syserrstr;
+	ALEF_setproc(getpid(), tdb, syserrstr);
 	ALEF_linksp(&i, sp, main);
 }
 
@@ -115,10 +119,11 @@ ALEF_trans()
 {
 	void *s;
 
-	s = PROC.tdb->ctask->stack;
+	s = ALEF_getproc(getpid())->tdb->ctask->stack;
 	free(s);
 	_exits(nil);
 }
+
 
 void
 terminate(byte *s)
@@ -128,7 +133,7 @@ terminate(byte *s)
 	void *stack;
 	Task *t, *me;
 
-	tdb = PROC.tdb;
+	tdb = ALEF_getproc(getpid())->tdb;
 
 	tdb->ntask--;
 	if(tdb->ntask == 0) {
@@ -158,11 +163,13 @@ terminate(byte *s)
 		free(stack);
 }
 
+
 void*
 ALEF_tid()
 {
-	return PROC.tdb->ctask;
+	return ALEF_getproc(getpid())->tdb->ctask;
 }
+
 
 void
 ALEF_gin(Lock **lk)
@@ -172,8 +179,48 @@ ALEF_gin(Lock **lk)
 	(*lk)->lock();
 }
 
+
 void
 ALEF_gou(Lock **lk)
 {
 	(*lk)->unlock();
+}
+
+
+Proc*
+ALEF_getproc(int pid)
+{
+	Proc *p;
+	int i;
+
+	p = nil;
+
+	ProcLock.lock();
+	for (i = 0; i < CurrProc; ++i) {
+		if (Procs[i].pid == pid) {
+			p = &Procs[i];
+			break;
+		}
+	}
+	ProcLock.unlock();
+
+	return p;
+}
+
+
+void
+ALEF_setproc(int pid, Tdb *tdb, byte *syserrstr)
+{
+	Proc *p;
+
+	ProcLock.lock();
+
+	check CurrProc < Nprocs - 1, "too many processes";
+
+	p = &Procs[CurrProc++];
+	p->pid = pid;
+	p->tdb = tdb;
+	p->syserrstr = syserrstr;
+
+	ProcLock.unlock();
 }

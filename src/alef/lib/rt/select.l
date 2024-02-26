@@ -26,7 +26,7 @@ ALEF_varselect(void)
 	int nrdy, n;
 	uint signature;
 
-	t = PROC.tdb->ctask;
+	t = ALEF_getproc(getpid())->tdb->ctask;
 	sema = &t->slist->selp;
 
 	for(;;) {
@@ -70,7 +70,7 @@ ALEF_doselect(void)
 	int *sema;
 	int nrdy, n, idx;
 
-	t = PROC.tdb->ctask;
+	t = ALEF_getproc(getpid())->tdb->ctask;
 	sema = &t->slist->selp;
 
 	for(;;) {

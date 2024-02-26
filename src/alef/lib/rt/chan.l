@@ -83,7 +83,7 @@ ALEF_qit(Chan *c)
 {
 	Task *t;
 
-	t = PROC.tdb->ctask;
+	t = ALEF_getproc(getpid())->tdb->ctask;
 
 	c->lock();
 	if(t->slist)

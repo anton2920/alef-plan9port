@@ -405,3 +405,9 @@ byte	*getwd(byte*, int);
 int	putenv(byte*, byte*);
 void	syslog(int, byte*, byte*, ...);
 int	times(int*);
+/*
+ *	Generic system call interface.
+ */
+(int, int, int)	syscall(int, int, int, int);
+(int, int, int)	syscall6(int, int, int, int, int, int, int);
+(int, int, int)	syscall9(int, int, int, int, int, int, int, int, int, int);

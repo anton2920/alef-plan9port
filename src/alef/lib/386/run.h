@@ -2,6 +2,7 @@
 
 enum
 {
+	Nprocs		= 1500,
 	Ptab		= 0xffff5000,	/* Private stack */
 	Execstk		= 0xff001000,	/* Exec stack linkage area */
 };
@@ -15,6 +16,7 @@ extern byte ALEFbecome[];
 
 typedef aggr Tdb;
 typedef aggr Task;
+typedef aggr Proc;
 
 void	*ALEF_getrp(void);
 void	ALEF_linktask(void);
@@ -22,6 +24,9 @@ void	*ALEF_switch(Task*, Task*, void*);
 void	ALEF_linksp(int*, byte*, void(*)(void));
 void	ALEF_sched(Task*);
 void*	ALEFalloc(uint, int);
+Proc*	ALEF_getproc(int);
+void	ALEF_setproc(int, Tdb*, byte*);
+
 /*
  * Stack alignment is unnecessary on this architecture
  */
@@ -104,7 +109,7 @@ aggr Tdb
 
 aggr Proc
 {
+	int	pid;
 	Tdb	*tdb;
 	byte	*syserrstr;
 };
-#define	PROC		(*((Proc*)Ptab))

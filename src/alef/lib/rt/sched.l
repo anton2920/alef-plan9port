@@ -11,7 +11,7 @@ ALEF_sched(Task *t)
 	tdb = t->tdb;
 	tdb->lock();
 	/* Synchronous swap between tasks ? */
-	if(PROC.tdb == tdb) {
+	if(ALEF_getproc(getpid())->tdb == tdb) {
 		me = tdb->ctask;
 		me->link = nil;
 		if(tdb->runhd)

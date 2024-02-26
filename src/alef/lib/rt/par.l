@@ -48,9 +48,8 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 		 */
 		semap = &sema;
 		nid = id;
-		if(rfork(RFNOWAIT|RFMEM|RFPROC) == 0) {
-			PROC.tdb = tdb;
-			PROC.syserrstr = syserrstr;
+		if(rfork(ALEFrfflag) == 0) {
+			ALEF_setproc(getpid(), tdb, syserrstr);
 			*semap = 0;
 			return nid;
 		}

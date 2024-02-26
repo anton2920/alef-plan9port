@@ -48,7 +48,7 @@ QLock.lock(QLock *q)
 		return;
 	}
 
-	me = PROC.tdb->ctask;
+	me = ALEF_getproc(getpid())->tdb->ctask;
 	me->qlink = q->queue;
 	q->queue = me;
 
