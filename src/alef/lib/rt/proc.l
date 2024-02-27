@@ -17,7 +17,7 @@ ALEF_proc(void (*f)(void), int argsize, ...)
 	int spin;
 	byte *stack, *syserrstr;
 
-	stack = ALEFalloc(ALEFstack+argsize+sizeof(Task)+sizeof(Tdb)+ERRLEN, 0);
+	stack = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb)+ERRLEN, 0);
 	if(stack == nil)
 		abort();
 

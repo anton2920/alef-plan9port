@@ -12,9 +12,9 @@ void	main(int, byte*);
 void	ALEF_lockinit(void);
 
 /* NOTE(anton2920): since on FreeBSD 'RFMEM' copies the entire address space, we need a way to store per-process data without overwriting anything. */
-Lock	ProcLock;
-Proc	Procs[Nprocs];
-int	CurrProc;
+intern Lock	ProcLock;
+intern Proc	Procs[Nprocs];
+intern int	CurrProc;
 
 /*
  * Build argv/argc on shared memory stack.  Link the process stack into
@@ -119,7 +119,7 @@ ALEF_trans()
 {
 	void *s;
 
-	s = ALEF_getproc(getpid())->tdb->ctask->stack;
+	s = PROC.tdb->ctask->stack;
 	free(s);
 	_exits(nil);
 }
@@ -133,7 +133,7 @@ terminate(byte *s)
 	void *stack;
 	Task *t, *me;
 
-	tdb = ALEF_getproc(getpid())->tdb;
+	tdb = PROC.tdb;
 
 	tdb->ntask--;
 	if(tdb->ntask == 0) {
@@ -141,7 +141,7 @@ terminate(byte *s)
 		if(p == 0)
 			exits(s);
 		p = 1;
-		ALEF_linksp(&p, (byte*)Ptab-4, ALEF_trans);
+		ALEF_linksp(&p, PROC.stack+sizeof(PROC.stack), ALEF_trans);
 		while(p != 0)
 			;
 	}

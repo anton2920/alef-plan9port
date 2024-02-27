@@ -3,7 +3,6 @@
 enum
 {
 	Nprocs		= 1500,
-	Ptab		= 0xffff5000,	/* Private stack */
 	Execstk		= 0xff001000,	/* Exec stack linkage area */
 };
 
@@ -112,4 +111,6 @@ aggr Proc
 	int	pid;
 	Tdb	*tdb;
 	byte	*syserrstr;
+	byte	stack[100];	/* NOTE(anton2920): will be switched on before _exits(2). */
 };
+#define	PROC		(*((Proc*)ALEF_getproc(getpid())))

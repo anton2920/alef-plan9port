@@ -24,6 +24,8 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 	id = 0;
 	while(n) {
 		st = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb)+ERRLEN, 0);
+		if (st == nil)
+			abort();
 		*stack++ = st+ALEFstack;
 
 		memset(st, 0, sizeof(Task)+sizeof(Tdb));
