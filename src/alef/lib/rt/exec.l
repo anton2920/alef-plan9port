@@ -11,7 +11,7 @@ ALEF_etrans(byte *name, byte **argv)
 	void *s;
 	byte e[ERRLEN];
 
-	s = ALEF_getproc(getpid())->tdb->ctask->stack;
+	s = PROC.tdb->ctask->stack;
 	free(s);
 	ALEF_lockrele();
 	_exec(name, argv);
@@ -25,7 +25,7 @@ exec(byte *name, byte **argv)
 	int l, n, i;
 	byte **sp, **p, *aspace;
 
-	if(ALEF_getproc(getpid())->tdb->ntask != 1) {
+	if(PROC.tdb->ntask != 1) {
 		werrstr("proc has more than one task");
 		return -1;
 	}

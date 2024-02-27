@@ -167,7 +167,7 @@ terminate(byte *s)
 void*
 ALEF_tid()
 {
-	return ALEF_getproc(getpid())->tdb->ctask;
+	return PROC.tdb->ctask;
 }
 
 

@@ -21,7 +21,7 @@ Rendez.Sleep(Rendez *r, void **bool, int t)
 		}
 	}
 
-	tdb = ALEF_getproc(getpid())->tdb;
+	tdb = PROC.tdb;
 	me = tdb->ctask;
 	r->t = me;
 

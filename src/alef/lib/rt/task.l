@@ -21,7 +21,7 @@ ALEF_task(void (*f)(void), int argsize, ...)
 	t = (Task*)stack;
 	t->stack = stack;
 
-	tdb = ALEF_getproc(getpid())->tdb;
+	tdb = PROC.tdb;
 	tdb->lock();
 	tdb->ntask++;
 	if(tdb->runhd)

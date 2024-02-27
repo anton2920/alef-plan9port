@@ -46,7 +46,7 @@ getsyserr(void)
 {
 	byte * syserrstr;
 
-	syserrstr = ALEF_getproc(getpid())->syserrstr;
+	syserrstr = PROC.syserrstr;
 	if (syserrstr == nil) {
 		syserrstr = _syserrstr;
 	}
@@ -133,7 +133,7 @@ rendezvous(void *a, uint b)
 
 	RendezLock.lock();
 	id = semget((int)a, 1, IPC_R | IPC_W);
-	if (id > 0) {
+	if (id >= 0) {
 		RendezLock.unlock();
 		return semctl(id, 0, IPC_RMID);
 	}
