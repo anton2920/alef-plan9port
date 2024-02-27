@@ -16,6 +16,8 @@ intern Lock	ProcLock;
 intern Proc	Procs[Nprocs];
 intern int	CurrProc;
 
+intern Lock	glo; /* NOTE(anton2920): protects lock allocation for guarded sections. */
+
 /*
  * Build argv/argc on shared memory stack.  Link the process stack into
  * shared memory and call main.
@@ -174,8 +176,10 @@ ALEF_tid()
 void
 ALEF_gin(Lock **lk)
 {
+	glo.lock();
 	if(*lk == nil)
 		*lk = malloc(sizeof(Lock));
+	glo.unlock();
 	(*lk)->lock();
 }
 
