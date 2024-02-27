@@ -114,3 +114,5 @@ aggr Proc
 	byte	stack[100];	/* NOTE(anton2920): will be switched on before _exits(2). */
 };
 #define	PROC		(*((Proc*)ALEF_getproc(getpid())))
+
+int	rfork(int, Tdb*, byte*);

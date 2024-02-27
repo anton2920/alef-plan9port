@@ -10,7 +10,7 @@ aggr Parrend
 };
 
 int
-ALEF_pfork(int n, byte **stack, Parrend *b)
+ALEF_pfork(int n, byte **stv, Parrend *b)
 {
 	Task *t;
 	Tdb *tdb;
@@ -26,7 +26,7 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 		st = ALEFalloc(ALEFstack+sizeof(Task)+sizeof(Tdb)+ERRLEN, 0);
 		if (st == nil)
 			abort();
-		*stack++ = st+ALEFstack;
+		*stv++ = st+ALEFstack+sizeof(Task)+sizeof(Tdb)+ERRLEN;
 
 		memset(st, 0, sizeof(Task)+sizeof(Tdb));
 		t = (Task*)st;
@@ -50,8 +50,7 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 		 */
 		semap = &sema;
 		nid = id;
-		if(rfork(ALEFrfflag) == 0) {
-			ALEF_setproc(getpid(), tdb, syserrstr);
+		if(rfork(ALEFrfflag, tdb, syserrstr) == 0) {
 			*semap = 0;
 			return nid;
 		}
@@ -60,7 +59,7 @@ ALEF_pfork(int n, byte **stack, Parrend *b)
 		n--;
 		id++;
 	}
-	*stack = nil;
+	*stv = nil;
 	return id;
 }
 
@@ -74,7 +73,7 @@ ALEF_pdone(Parrend *b, byte **stv)
 
 	while(*stv) {
 		p = *stv++;
-		p -= ALEFstack;
+		p -= ALEFstack+sizeof(Task)+sizeof(Tdb)+ERRLEN;
 		free(p);
 	}
 }

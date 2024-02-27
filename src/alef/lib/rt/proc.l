@@ -49,8 +49,7 @@ ALEF_proc(void (*f)(void), int argsize, ...)
 	ALEFnproc.inc();
 
 	spin = 1;
-	if(rfork(ALEFrfflag) == 0) {
-		ALEF_setproc(getpid(), tdb, syserrstr);
+	if(rfork(ALEFrfflag, tdb, syserrstr) == 0) {
 		ALEF_linksp(&spin, stack, f);
 	}
 

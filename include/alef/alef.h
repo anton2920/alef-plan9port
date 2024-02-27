@@ -54,7 +54,6 @@ int	getpid(void);
 int	getppid(void);
 byte	*getuser(void);
 void	qsort(void*, int, int, int (*)(void*, void*));
-int	rfork(int);
 int	open(byte*, int);
 int	pipe(int*);
 int	read(int, void*, int);

@@ -149,15 +149,6 @@ rendezvous(void *a, uint b)
 
 
 int
-rfork(int flags)
-{
-	int	r1;
-	(r1, nil, _errno) = syscall(SYS_rfork, flags, 0, 0);
-	return r1;
-}
-
-
-int
 semctl(int semid, int semnum, int cmd)
 {
 	int	r1;
