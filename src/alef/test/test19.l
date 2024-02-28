@@ -25,7 +25,7 @@ set(Panel *p, Set a)
 	typeof a {
 	case Tname:
 		p->name=a.v;
-		print("name\n");
+		print("name = %s\n", p->name);
 	}
 }
 

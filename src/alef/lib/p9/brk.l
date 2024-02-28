@@ -22,8 +22,6 @@ aggr Mem
 
 intern Mem bloc;
 
-void*	mmap(void*, uint, int, int, int, int);
-
 void*
 sbrk(uint n)
 {

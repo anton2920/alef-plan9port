@@ -53,6 +53,8 @@ byte*	getenv(byte*);
 int	getpid(void);
 int	getppid(void);
 byte	*getuser(void);
+int	kill(int, int);
+void*	mmap(void*, uint, int, int, int, int);
 void	qsort(void*, int, int, int (*)(void*, void*));
 int	open(byte*, int);
 int	pipe(int*);

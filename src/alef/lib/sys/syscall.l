@@ -72,7 +72,7 @@ rerrstr(byte *err, uint n)
 void
 abort()
 {
-	syscall(SYS_kill, getpid(), SIGABRT, 0);
+	kill(getpid(), SIGABRT);
 }
 
 
@@ -133,6 +133,15 @@ getpid()
 {
 	int	r1;
 	(r1, nil, _errno) = syscall(SYS_getpid, 0, 0, 0);
+	return r1;
+}
+
+
+int
+kill(int pid, int sig)
+{
+	int	r1;
+	(r1, nil, _errno) = syscall(SYS_kill, pid, sig, 0);
 	return r1;
 }
 

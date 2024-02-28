@@ -34,6 +34,8 @@ STARTTIME=`date +%s`
 
 case $1 in
 	'')
+		prog pstest "ps.l pstest.l"
+		prog sieve "sieve.l"
 		prog test "test.l"
 		prog test2 "test2.l"
 		prog test3 "test3.l"
@@ -51,7 +53,7 @@ case $1 in
 		prog tstbio "tstbio.l"
 		;;
 	clean)
-		run rm -f *.8 `ls | grep test[0-9]*$` tstbio xx*
+		run rm -f *.8 `ls | grep test[0-9]*$` sieve tstbio xx*
 		;;
 	*)
 		echo "Target is not supported!"
