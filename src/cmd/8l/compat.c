@@ -16,5 +16,5 @@ setmalloctag(void *v, ulong pc)
 int
 fileexists(char *s)
 {
-	return access(s, F_OK);
+	return (access(s, F_OK) == 0);
 }
