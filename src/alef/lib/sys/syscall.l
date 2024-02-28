@@ -27,6 +27,13 @@ aggr Sembuf
 };
 
 
+aggr Timespec
+{
+	int	sec;
+	int	nsec;
+};
+
+
 Lock	RendezLock;
 
 enum
@@ -54,6 +61,15 @@ getsyserr(void)
 		syserrstr = _syserrstr;
 	}
 	return syserrstr;
+}
+
+
+intern int
+nanosleep(Timespec *rqtp, Timespec *rmtp)
+{
+	int	r1;
+	(r1, nil, _errno) = syscall(SYS_nanosleep, (int)rqtp, (int)rmtp, 0);
+	return r1;
 }
 
 
@@ -165,6 +181,15 @@ open(byte *path, int flags)
 
 
 int
+read(int fd, void *buf, int n)
+{
+	int	r1;
+	(r1, nil, _errno) = syscall(SYS_read, fd, (int)buf, n);
+	return r1;
+}
+
+
+int
 rendezvous(void *a, uint b)
 {
 	Sembuf ops;
@@ -186,6 +211,15 @@ rendezvous(void *a, uint b)
 	ops.op = -1;
 	ops.flg = 0;
 	return semop(id, &ops, 1);
+}
+
+
+int
+seek(int filedes, uint offset, int whence)
+{
+	int	r1;
+	(r1, nil, _errno) = syscall6(SYS_lseek, filedes, offset, 0, whence, 0, 0);
+	return r1;
 }
 
 
@@ -213,6 +247,16 @@ semop(int semid, Sembuf *array, uint nops)
 	int	r1;
 	(r1, nil, _errno) = syscall(SYS_semop, semid, (int)array, nops);
 	return r1;
+}
+
+
+int
+sleep(int msecs)
+{
+	Timespec tv;
+	tv.sec = msecs / 1000;
+	tv.nsec = (msecs % 1000) * 1000;
+	return nanosleep(&tv, nil);
 }
 
 

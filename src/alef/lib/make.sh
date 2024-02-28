@@ -21,12 +21,7 @@ run()
 target()
 {
 	run cd $1
-
-	# TODO(anton2920): remove after all source files are here.
-	chmod +x ./make.sh
-
 	./make.sh $VERBOSITYFLAGS $2
-
 	cd $OLDPWD
 }
 
@@ -53,4 +48,4 @@ esac
 
 ENDTIME=`date +%s`
 
-echo Done $1 in $((ENDTIME-STARTTIME))s
+echo Done $PROJECT $1 in $((ENDTIME-STARTTIME))s

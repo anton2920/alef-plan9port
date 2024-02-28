@@ -30,6 +30,13 @@ prog()
 	run brandelf -t FreeBSD $NAME
 }
 
+target()
+{
+	run cd $1
+	./make.sh $VERBOSITYFLAGS $2
+	cd $OLDPWD
+}
+
 STARTTIME=`date +%s`
 
 case $1 in
@@ -51,9 +58,12 @@ case $1 in
 		prog test18 "test18.l stack.l"
 		prog test19 "test19.l"
 		prog tstbio "tstbio.l"
+
+		target ug $1
 		;;
 	clean)
 		run rm -f *.8 `ls | grep test[0-9]*$` sieve tstbio xx*
+		target ug $1
 		;;
 	*)
 		echo "Target is not supported!"
