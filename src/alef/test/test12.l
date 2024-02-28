@@ -3,5 +3,5 @@
 void
 main(void)
 {
-	print("%d", sizeof("hello"));
+	print("%d\n", sizeof("hello"));
 }
