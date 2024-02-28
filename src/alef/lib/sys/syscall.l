@@ -6,6 +6,9 @@
 
 #include "run.h"
 
+/* From <fcntl.h>. */
+#define	O_CREAT		0x0200		/* create if nonexistent */
+
 /* From <sys/signal.h>. */
 #define	SIGABRT	6
 
@@ -54,20 +57,15 @@ getsyserr(void)
 }
 
 
-void
-_exit(int code)
+intern void
+rerrstr(byte *err, uint n)
 {
-	syscall(SYS_exit, code, 0, 0);
-}
+	byte * syserr;
 
-
-void
-_exits(byte *s)
-{
-	if ((s == nil) || (*s == 0)) {
-		_exit(0);
-	}
-	_exit(1);
+	syserr = getsyserr();
+	if (_errno != EPLAN9)
+		strcpy(syserr, strerror(_errno));
+	strncpy(err, syserr, n - 1);
 }
 
 
@@ -78,15 +76,23 @@ abort()
 }
 
 
-void
-rerrstr(byte *err, uint n)
+int
+close(int fd)
 {
-	byte * syserr;
+	int	r1;
+	(r1, nil, _errno) = syscall(SYS_close, fd, 0, 0);
+	return r1;
+}
 
-	syserr = getsyserr();
-	if (_errno != EPLAN9)
-		strcpy(syserr, strerror(_errno));
-	strncpy(err, syserr, n - 1);
+
+int
+create(byte *path, int flags, uint mode)
+{
+	int	r1;
+
+	flags |= O_CREAT;
+	(r1, nil, _errno) = syscall(SYS_open, (int)path, flags, mode);
+	return r1;
 }
 
 
@@ -105,6 +111,23 @@ errstr(byte *err, uint n)
 }
 
 
+void
+_exit(int code)
+{
+	syscall(SYS_exit, code, 0, 0);
+}
+
+
+void
+_exits(byte *s)
+{
+	if ((s == nil) || (*s == 0)) {
+		_exit(0);
+	}
+	_exit(1);
+}
+
+
 int
 getpid()
 {
@@ -120,6 +143,15 @@ mmap(void *addr, uint len, int prot, int flags, int fd, int offset)
 	int	r1;
 	(r1, nil, _errno) = syscall9(SYS_mmap, (int)addr, len, prot, flags, fd, offset, 0, 0, 0);
 	return (void * )r1;
+}
+
+
+int
+open(byte *path, int flags)
+{
+	int	r1;
+	(r1, nil, _errno) = syscall(SYS_open, (int)path, flags, 0);
+	return r1;
 }
 
 
