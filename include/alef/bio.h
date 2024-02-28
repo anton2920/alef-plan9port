@@ -1,6 +1,3 @@
-#pragma src "/sys/src/alef/lib/libbio"
-#pragma lib "/$M/lib/alef/libbio.a"
-
 enum
 {
 	Bsize		= 4096,
