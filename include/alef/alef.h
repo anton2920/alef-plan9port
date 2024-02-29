@@ -32,6 +32,10 @@ aggr Arg
 };
 
 /* common utility functions and system calls */
+(int, int, int)	syscall(int, int, int, int);
+(int, int, int)	syscall6(int, int, int, int, int, int, int);
+(int, int, int)	syscall9(int, int, int, int, int, int, int, int, int, int);
+
 void	abort(void);
 int	access(byte*, int);
 int	alarm(uint);
@@ -63,6 +67,7 @@ int	readn(int, void*, int);
 #define	read9p	read
 int	rendezvous(void*, uint);
 void*	sbrk(uint);
+int	sched_yield();
 int	sleep(int);
 int	tokenize(byte*, byte**, int);
 void	terminate(byte*);
@@ -406,9 +411,3 @@ byte	*getwd(byte*, int);
 int	putenv(byte*, byte*);
 void	syslog(int, byte*, byte*, ...);
 int	times(int*);
-/*
- *	Generic system call interface.
- */
-(int, int, int)	syscall(int, int, int, int);
-(int, int, int)	syscall6(int, int, int, int, int, int, int);
-(int, int, int)	syscall9(int, int, int, int, int, int, int, int, int, int);

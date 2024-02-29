@@ -60,6 +60,11 @@ ALEF_pfork(int n, byte **stv, Parrend *b)
 		id++;
 	}
 	*stv = nil;
+
+	/* NOTE(anton2920): this yield lowers the chance of the main process returning before the last process created.*/
+	/* TODO(anton2920): a better way to handle this race would be a spin-wait for page to become dirty, which would mean that child process has exitted and saved its SP to its new stack. */
+	sched_yield();
+
 	return id;
 }
 

@@ -215,6 +215,15 @@ rendezvous(void *a, uint b)
 
 
 int
+sched_yield()
+{
+	int	r1;
+	(r1, nil, _errno) = syscall(SYS_yield, 0, 0, 0);
+	return r1;
+}
+
+
+int
 seek(int filedes, uint offset, int whence)
 {
 	int	r1;
