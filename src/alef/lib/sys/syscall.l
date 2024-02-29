@@ -12,20 +12,21 @@
 /* From <sys/signal.h>. */
 #define	SIGABRT	6
 
-/* From <sys/ipc.h>. */
-#define	IPC_CREAT	001000
-#define	IPC_NOWAIT	004000
-#define	IPC_R		000400
-#define	IPC_W		000200
-#define	IPC_RMID	0
+/* From <sys/umtx.h>. */
+#define	UMTX_OP_WAKE		3
+#define	UMTX_OP_WAIT_UINT	11
 
-aggr Sembuf
+#define	RENDMAX	(1 << 5)
+
+aggr RendP
 {
-	usint	num;
-	sint	op;
-	sint	flg;
+	void * tag;
+	uint	value;
 };
 
+
+intern RendP	RendezList[RENDMAX];
+intern Lock	RendezLock;
 
 aggr Timespec
 {
@@ -34,21 +35,15 @@ aggr Timespec
 };
 
 
-Lock	RendezLock;
-
 enum
 {
 	EPLAN9 = 0x19283745,
 };
 
-int	_errno;
+intern int	_errno;
 intern byte	_syserrstr[ERRLEN];
 
 byte*	strerror(int);
-
-int	semctl(int, int, int);
-int	semget(int, int, int);
-int	semop(int, Sembuf*, uint);
 
 
 intern byte *
@@ -61,6 +56,13 @@ getsyserr(void)
 		syserrstr = _syserrstr;
 	}
 	return syserrstr;
+}
+
+
+intern void
+_exit(int code)
+{
+	syscall(SYS_exit, code, 0, 0);
 }
 
 
@@ -82,6 +84,25 @@ rerrstr(byte *err, uint n)
 	if (_errno != EPLAN9)
 		strcpy(syserr, strerror(_errno));
 	strncpy(err, syserr, n - 1);
+}
+
+
+void
+_exits(byte *s)
+{
+	if ((s == nil) || (*s == 0)) {
+		_exit(0);
+	}
+	_exit(1);
+}
+
+
+int
+_umtx_op(void *obj, int op, int val, void *uaddr, void *uaddr2)
+{
+	int	r1;
+	(r1, nil, _errno) = syscall6(SYS__umtx_op, (int)obj, op, val, 0, (int)uaddr, (int)uaddr2);
+	return r1;
 }
 
 
@@ -124,23 +145,6 @@ errstr(byte *err, uint n)
 	strncpy(syserr, tmp, ERRLEN - 1);
 	_errno = EPLAN9;
 	return 0;
-}
-
-
-void
-_exit(int code)
-{
-	syscall(SYS_exit, code, 0, 0);
-}
-
-
-void
-_exits(byte *s)
-{
-	if ((s == nil) || (*s == 0)) {
-		_exit(0);
-	}
-	_exit(1);
 }
 
 
@@ -190,27 +194,39 @@ read(int fd, void *buf, int n)
 
 
 int
-rendezvous(void *a, uint b)
+rendezvous(void *tag, uint value)
 {
-	Sembuf ops;
-	int	id;
+	int	i, rvalue;
+	RendP * p;
 
-	check b == 0, "rendezvous only supports exchanging zeros";
+	p = nil;
 
 	RendezLock.lock();
-	id = semget((int)a, 1, IPC_R | IPC_W);
-	if (id >= 0) {
-		RendezLock.unlock();
-		return semctl(id, 0, IPC_RMID);
+	for (i = 0; i < RENDMAX; ++i) {
+		if ((p == nil) && (RendezList[i].tag == nil)) {
+			p = &RendezList[i];
+			continue;
+		}
+		if (RendezList[i].tag == tag) {
+			/* NOTE(anton2920): somebody is waiting, exchange values and wake them up. */
+			rvalue = RendezList[i].value;
+			RendezList[i].value = value;
+			RendezList[i].tag = nil;
+
+			_umtx_op(&RendezList[i].tag, UMTX_OP_WAKE, 1, nil, nil);
+			RendezLock.unlock();
+			return rvalue;
+		}
 	}
 
-	id = semget((int)a, 1, IPC_CREAT | IPC_R | IPC_W);
+	/* NOTE(anton2920): going to sleep here. */
+	p->tag = tag;
+	p->value = value;
 	RendezLock.unlock();
-
-	ops.num = 0;
-	ops.op = -1;
-	ops.flg = 0;
-	return semop(id, &ops, 1);
+	if (_umtx_op(&p->tag, UMTX_OP_WAIT_UINT, (int)tag, nil, nil) < 0) {
+		return - 1;
+	}
+	return p->value;
 }
 
 
@@ -228,33 +244,6 @@ seek(int filedes, uint offset, int whence)
 {
 	int	r1;
 	(r1, nil, _errno) = syscall6(SYS_lseek, filedes, offset, 0, whence, 0, 0);
-	return r1;
-}
-
-
-int
-semctl(int semid, int semnum, int cmd)
-{
-	int	r1;
-	(r1, nil, _errno) = syscall6(SYS___semctl, semid, semnum, cmd, 0, 0, 0);
-	return r1;
-}
-
-
-int
-semget(int key, int nsems, int flag)
-{
-	int	r1;
-	(r1, nil, _errno) = syscall(SYS_semget, key, nsems, flag);
-	return r1;
-}
-
-
-int
-semop(int semid, Sembuf *array, uint nops)
-{
-	int	r1;
-	(r1, nil, _errno) = syscall(SYS_semop, semid, (int)array, nops);
 	return r1;
 }
 
