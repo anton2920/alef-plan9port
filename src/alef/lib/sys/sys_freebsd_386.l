@@ -54,6 +54,27 @@ create(byte *path, int flags, uint mode)
 
 
 int
+fchmod(int fd, usint mode)
+{
+	return syscall(SYS_fchmod, fd, mode, 0);
+}
+
+
+int
+ftruncate(int fd, int length)
+{
+	return syscall(SYS_ftruncate, fd, length, 0);
+}
+
+
+int
+futimes(int fd, Timeval *times)
+{
+	return syscall(SYS_futimes, fd, (int)times, 0);
+}
+
+
+int
 getpid()
 {
 	int	r1;

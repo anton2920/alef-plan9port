@@ -415,12 +415,21 @@ aggr Timespec
 	int	nsec;
 };
 
+aggr Timeval
+{
+	int	sec;
+	int	usec;
+};
+
 int	syscall(int, int, int, int);
 int	syscall6(int, int, int, int, int, int, int);
 int	syscall9(int, int, int, int, int, int, int, int, int, int);
 
 void	_exit(int);
 int	_umtx_op(void*, int, int, void*, void*);
+int	fchmod(int, usint);
+int	ftruncate(int, int);
+int	futimes(int, Timeval*);
 int	kill(int, int);
 void*	mmap(void*, uint, int, int, int, int);
 int	nanosleep(Timespec*, Timespec*);
