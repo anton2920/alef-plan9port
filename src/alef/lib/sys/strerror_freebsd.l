@@ -4,7 +4,8 @@
 #include <errno.h>
 
 intern byte *_error_strings[] = {
-	"Operation not permitted",
+	"",
+	    "Operation not permitted",
 	    "No such file or directory",
 	    "No such process",
 	    "Interrupted system call",
@@ -128,9 +129,7 @@ intern byte *_error_strings[] = {
 byte *
 strerror(int errno)
 {
-	if (errno == 0) {
-		return "";
-	} else if (errno < ELAST) {
+	if ((errno >= 0) && (errno < ELAST)) {
 		return _error_strings[errno];
 	} else {
 		return "<UNDEFINED ERROR>";
