@@ -115,4 +115,4 @@ aggr Proc
 };
 #define	PROC		(*((Proc*)ALEF_getproc(getpid())))
 
-int	rfork(int, Tdb*, byte*);
+int	rfork_proc(int, Tdb*, byte*);

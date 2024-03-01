@@ -32,10 +32,6 @@ aggr Arg
 };
 
 /* common utility functions and system calls */
-(int, int, int)	syscall(int, int, int, int);
-(int, int, int)	syscall6(int, int, int, int, int, int, int);
-(int, int, int)	syscall9(int, int, int, int, int, int, int, int, int, int);
-
 void	abort(void);
 int	access(byte*, int);
 int	alarm(uint);
@@ -57,17 +53,16 @@ byte*	getenv(byte*);
 int	getpid(void);
 int	getppid(void);
 byte	*getuser(void);
-int	kill(int, int);
-void*	mmap(void*, uint, int, int, int, int);
 void	qsort(void*, int, int, int (*)(void*, void*));
+int	rfork(int);
 int	open(byte*, int);
 int	pipe(int*);
 int	read(int, void*, int);
 int	readn(int, void*, int);
 #define	read9p	read
 int	rendezvous(void*, uint);
+void	rerrstr(byte*, uint);
 void*	sbrk(uint);
-int	sched_yield();
 int	sleep(int);
 int	tokenize(byte*, byte**, int);
 void	terminate(byte*);
@@ -411,3 +406,22 @@ byte	*getwd(byte*, int);
 int	putenv(byte*, byte*);
 void	syslog(int, byte*, byte*, ...);
 int	times(int*);
+/*	--CUT HERE--
+ *	Definitions specific to FreeBSD
+ */
+aggr Timespec
+{
+	int	sec;
+	int	nsec;
+};
+
+int	syscall(int, int, int, int);
+int	syscall6(int, int, int, int, int, int, int);
+int	syscall9(int, int, int, int, int, int, int, int, int, int);
+
+void	_exit(int);
+int	_umtx_op(void*, int, int, void*, void*);
+int	kill(int, int);
+void*	mmap(void*, uint, int, int, int, int);
+int	nanosleep(Timespec*, Timespec*);
+int	sched_yield();

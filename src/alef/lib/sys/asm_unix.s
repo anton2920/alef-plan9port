@@ -1,8 +1,8 @@
 /*
 (int, int, int)
-syscall(int, int, int, int);
+RawSyscall(int, int, int, int);
 */
-	TEXT syscall(SB), 1, $20
+	TEXT RawSyscall(SB), 1, $20
 	/* NOTE(anton2920): saving return tuple address. */
 	MOVL	AX, 16(SP)
 
@@ -33,9 +33,9 @@ ok1:
 
 /*
 (int, int, int)
-syscall6(int, int, int, int, int, int, int);
+RawSyscall6(int, int, int, int, int, int, int);
 */
-	TEXT	syscall6(SB), 1, $32
+	TEXT	RawSyscall6(SB), 1, $32
 	/* NOTE(anton2920): saving return tuple address. */
 	MOVL	AX, 28(SP)
 
@@ -69,9 +69,9 @@ ok2:
 
 /*
 (int, int, int)
-syscall9(int, int, int, int, int, int, int, int, int, int);
+RawSyscall9(int, int, int, int, int, int, int, int, int, int);
 */
-	TEXT	syscall9(SB), 1, $44
+	TEXT	RawSyscall9(SB), 1, $44
 	/* NOTE(anton2920): saving return tuple address. */
 	MOVL	AX, 40(SP)
 
