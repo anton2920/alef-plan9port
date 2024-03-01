@@ -10,7 +10,7 @@ sleep(int msecs)
 	}
 
 	tv.sec = msecs / 1000;
-	tv.nsec = (msecs % 1000) * 1000;
+	tv.nsec = (msecs % 1000) * 1000000;
 	return nanosleep(&tv, nil);
 }
 
