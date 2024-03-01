@@ -265,6 +265,34 @@ enum
 	NCONT	=	0,
 	NDFLT	=	1,
 
+	/* bits in Qid.type */
+	QTDIR	=	0x80,
+	QTAPPEND	=	0x40,
+	QTEXCL	=	0x20,
+	QTMOUNT	=	0x10,
+	QTAUTH	=	0x08,
+	QTTMP	=	0x04,
+	QTSYMLINK	=	0x02,
+	QTFILE	=	0x00,
+
+	/* bits in Dir.mode */
+	DMDIR	=	0x80000000,
+	DMAPPEND	=	0x40000000,
+	DMEXCL	=	0x20000000,
+	DMMOUNT	=	0x10000000,
+	DMAUTH	=	0x08000000,
+	DMTMP	=	0x04000000,
+	DMSYMLINK	=	0x02000000,
+	DMDEVICE	=	0x00800000,
+	DMNAMEDPIPE	=	0x00200000,
+	DMSOCKET	=	0x00100000,
+	DMSETUID	=	0x00080000,
+	DMSETGID	=	0x00040000,
+
+	DMREAD	=	0x4,
+	DMWRITE	=	0x2,
+	DMEXEC	=	0x1,
+
 	/* rfork */
 	RFNAMEG		= (1<<0),
 	RFENVG		= (1<<1),
@@ -308,20 +336,24 @@ aggr Qid
 {
 	uint	path;
 	uint	vers;
+	byte	type;
 };
 
-aggr Dir
-{
-	byte	name[NAMELEN];
-	byte	uid[NAMELEN];
-	byte	gid[NAMELEN];
-	Qid	qid;
-	uint	mode;
-	int	atime;
-	int	mtime;
-	Length;
-	usint	type;
-	usint	dev;
+aggr Dir {
+	/* system–modified data */
+	uint    type;	/* server type */
+	uint    dev;	/* server subtype */
+
+	/* file data */
+	Qid	qid;	/* unique id from server */
+	uint	mode;	/* permissions */
+	uint	atime;	/* last read time */
+	uint	mtime;	/* last write time */
+	uint	length;	/* file length: see <u.h> */
+	byte	*name;	/* last element of path */
+	byte	*uid;	/* owner name */
+	byte	*gid;	/* group name */
+	byte	*muid;	/* last modifier name */
 };
 
 aggr Waitmsg
@@ -342,6 +374,7 @@ aggr Tm
 	int	wday;
 	int	yday;
 	byte	zone[4];
+	int	tzoff;
 };
 /*
  *	Plan 9 system calls
@@ -351,7 +384,6 @@ int	create(byte*, int, uint);
 int	dup(int, int);
 int	fauth(int, byte*);
 int	fsession(int, byte*);
-int	fstat(int, byte*);
 int	fwstat(int, byte*);
 int	mount(int, byte*, int, byte*);
 int	noted(int);
@@ -373,7 +405,7 @@ int	wstat(byte*, byte*);
  */
 int	convM2D(byte*, Dir*);
 int	convD2M(Dir*, byte*);
-int	dirfstat(int, Dir*);
+Dir*	dirfstat(int);
 int	dirfwstat(int, Dir*);
 int	dirread(int, Dir*, int);
 int	dirstat(byte*, Dir*);
@@ -398,7 +430,7 @@ byte*	asctime(Tm*);
 Tm*	gmtime(int);
 Tm*	localtime(int);
 uint	mstime();
-int	time(void);
+int	time(int*);
 /*
  *	Miscellaneous Plan 9 functions
  */
@@ -409,28 +441,60 @@ int	times(int*);
 /*	--CUT HERE--
  *	Definitions specific to FreeBSD
  */
+/* From <sys/_timespec.h>. */
 aggr Timespec
 {
 	int	sec;
 	int	nsec;
 };
 
+/* From <sys/_timeval.h>. */
 aggr Timeval
 {
 	int	sec;
 	int	usec;
 };
 
-int	syscall(int, int, int, int);
-int	syscall6(int, int, int, int, int, int, int);
-int	syscall9(int, int, int, int, int, int, int, int, int, int);
+/* From <sys/stat.h>. */
+aggr Stat
+{
+	uint	dev[2];	/* inode's device */
+	uint	ino[2];	/* inode's number */
+	uint	nlink[2];	/* number of hard links */
+	usint	mode;	/* inode protection mode */
+	sint;
+	uint	uid;	/* user ID of the file's owner */
+	uint	gid;	/* group ID of the file's group */
+	int;
+	uint	rdev[2];	/* device type */
+	int	atim_ext;
+	Timespec	atim;	/* time of last access */
+	int	mtim_ext;
+	Timespec	mtim;	/* time of last data modification */
+	int	ctim_ext;
+	Timespec	ctim;	/* time of last file status change */
+	int birthtim_ext;
+	Timespec	birthtim;	/* time of file creation */
+	int	size[2];	/* file size, in bytes */
+	int	blocks[2];	/* blocks allocated for file */
+	int	blksize;	/* optimal blocksize for I/O */
+	uint	flags;	/* user defined flags for file */
+	uint	gen[2];	/* file generation number */
+	int	spare[20];
+};
 
 void	_exit(int);
 int	_umtx_op(void*, int, int, void*, void*);
+int	clock_gettime(int, Timespec*);
 int	fchmod(int, usint);
+int	fstat(int, Stat*);
 int	ftruncate(int, int);
 int	futimes(int, Timeval*);
+int	ioctl(int, uint, ...);
 int	kill(int, int);
 void*	mmap(void*, uint, int, int, int, int);
 int	nanosleep(Timespec*, Timespec*);
 int	sched_yield();
+int	syscall(int, int, int, int);
+int	syscall6(int, int, int, int, int, int, int);
+int	syscall9(int, int, int, int, int, int, int, int, int, int);

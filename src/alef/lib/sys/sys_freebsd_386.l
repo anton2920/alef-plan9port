@@ -98,6 +98,13 @@ getpid()
 
 
 int
+ioctl(int fd, uint request, ...)
+{
+	return syscall(SYS_ioctl, fd, request, (int)...);
+}
+
+
+int
 kill(int pid, int sig)
 {
 	return syscall(SYS_kill, pid, sig, 0);
