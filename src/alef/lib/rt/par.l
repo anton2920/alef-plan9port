@@ -50,7 +50,7 @@ ALEF_pfork(int n, byte **stv, Parrend *b)
 		 */
 		semap = &sema;
 		nid = id;
-		if(rfork(ALEFrfflag, tdb, syserrstr) == 0) {
+		if(rfork_proc(ALEFrfflag, tdb, syserrstr) == 0) {
 			*semap = 0;
 			return nid;
 		}
