@@ -1,15 +1,16 @@
 #include	<alef.h>
 
 intern int fd = -1;
+int	_time(void);
 
 void
 t(void)
 {
-	print("time: %lux\n", time());
+	print("time: %lux\n", _time());
 }
 
 int
-time(void)
+_time(void)
 {
 	int t;
 	byte b[20];

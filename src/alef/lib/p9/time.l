@@ -1,22 +1,20 @@
 #include <alef.h>
 
-intern int f = -1;
+/* From <sys/_clock_id.h>. */
+#define CLOCK_REALTIME		0
 
 int
-time()
+time(int *tp)
 {
-	int t;
-	byte b[20];
+	Timespec tv;
 
-	memset(b, 0, sizeof(b));
-	!{
-		if(f < 0)
-			f = open("/dev/time", OREAD|OCEXEC);
-		if(f >= 0) {
-			seek(f, 0, 0);
-			read(f, b, sizeof(b));
-		}
+	if (clock_gettime(CLOCK_REALTIME, &tv) < 0) {
+		return - 1;
 	}
-	t = atoi(b);
-	return t;
+	if (tp) {
+		*tp = tv.sec;
+	}
+	return tv.sec;
 }
+
+

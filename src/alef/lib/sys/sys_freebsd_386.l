@@ -40,6 +40,13 @@ _umtx_op(void *obj, int op, int val, void *uaddr, void *uaddr2)
 
 
 int
+clock_gettime(int clock_id, Timespec *tp)
+{
+	return syscall(SYS_clock_gettime, clock_id, (int)tp, 0);
+}
+
+
+int
 close(int fd)
 {
 	return syscall(SYS_close, fd, 0, 0);
@@ -57,6 +64,13 @@ int
 fchmod(int fd, usint mode)
 {
 	return syscall(SYS_fchmod, fd, mode, 0);
+}
+
+
+int
+fstat(int fd, Stat *sb)
+{
+	return syscall(SYS_fstat, fd, (int)sb, 0);
 }
 
 
