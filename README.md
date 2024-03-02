@@ -18,7 +18,7 @@ Currently only `freebsd/386` is supported. It shouldn't be difficult to port it 
 
 What's not that simple, however, is porting it to `amd64`. That would require writing an architecture-specific portion of a compiler and also porting `6l(1)` and `6a(1)` from Plan 9, although latter is not that difficult.
 
-Also not the entire standard library is ported. Currently it's work in progress. Some functions may not work, some may be absent and some are explicitly call `werrstr("not implemented")`.
+Also not the entire standard library is ported. Currently it's work in progress. Some functions may not work, some may be absent and some are explicitly calling `werrstr("not implemented");`.
 
 ## Documentation
 
