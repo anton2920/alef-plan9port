@@ -10,7 +10,7 @@ In order to use Alef you need to build a compiler, loader and optionally assembl
 
 After building a compiler and loader, you can start writing programs. If you want to use Alef's full potential, you'll also need to build a runtime, which provides support for guarded sections, `alloc`/`unalloc`, `alt`,  `par`, `proc`, `task` primitives as well as for a channel type and its operations.
 
-There is a [make.sh](make.sh) script available to build/clean everything at once: bootstrap libraries, toolchain, `libA`, `libbio`, test programs and examples from [user guide](doc/ug.pdf). Provide `-v` flag to see actual commands as they are running.
+There is a [make.sh](make.sh) script available to build/clean everything at once: bootstrap libraries, toolchain, `libA`, `libbio`, `libmach`, Alef libraries, test programs and examples from [user guide](doc/ug.pdf). Provide `-v` flag to see actual commands as they are running.
 
 # Limitations
 
