@@ -1,6 +1,6 @@
 # Alef Programming Language
 
-This is a port of Alef Programming Language to Unix and Plan 9 From User Space.
+This is a port of Alef Programming Language to Unix and Plan 9 From User Space. See [alef-plan9](https://github.com/anton2920/alef-plan9) for the Plan 9 version of Alef.
 
 Alef is a concurrent programming language designed for systems software. Exception handling, process management, and synchronization primitives are implemented by the language. Programs can be written using both shared variable and message passing paradigms. Expressions use the same syntax as C, but the type system is substantially different. Alef supports object-oriented programming through static inheritance and information hiding. The language does not provide garbage collection, so programs are expected to manage their own memory.
 
