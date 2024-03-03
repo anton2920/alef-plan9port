@@ -5,10 +5,15 @@
 float
 cputime(void)
 {
-	int i, t[4];
+	float	ct;
+	int	t[4];
 
-	times(t);
-	for(i=1; i<4; i++)
-		t[0] += t[i];
-	return t[0] / HZ;
+	if (times(t) < 0) {
+		return - 1.0;
+	}
+
+	ct += (float) t[0::3];
+	return ct / HZ;
 }
+
+

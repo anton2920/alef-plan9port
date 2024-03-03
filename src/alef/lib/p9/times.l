@@ -1,46 +1,25 @@
 #include <alef.h>
 
-intern int f = -1;
-
-intern
-byte*
-skip(byte *p)
-{
-	while(*p == ' ')
-		p++;
-	while(*p != ' ' && *p != 0)
-		p++;
-	return p;
-}
+/* From <sys/resource.h>. */
+#define	RUSAGE_SELF	0
+#define	RUSAGE_CHILDREN	-1
 
 int
 times(int *t)
 {
-	byte b[200], *p;
-	uint r;
+	Rusage ru, cru;
 
-	memset(b, 0, sizeof(b));
-	!{
-		if(f < 0)
-			f = open("/dev/cputime", OREAD|OCEXEC);
-		if(f >= 0) !{
-			seek(f, 0, 0);
-			read(f, b, sizeof(b));
-		}
+	if (getrusage(RUSAGE_SELF, &ru) < 0 || getrusage(RUSAGE_CHILDREN, &cru) < 0) {
+		return - 1;
 	}
-	p = b;
-	if(t)
-		t[0] = atoi(p);
-	p = skip(p);
-	if(t)
-		t[1] = atoi(p);
-	p = skip(p);
-	r = atoi(p);
-	if(t){
-		p = skip(p);
-		t[2] = atoi(p);
-		p = skip(p);
-		t[3] = atoi(p);
-	}
-	return r;
+
+	t[0] = ru.utime.sec * 1000 + ru.utime.usec / 1000;
+	t[1] = ru.stime.sec * 1000 + ru.stime.usec / 1000;
+	t[2] = cru.utime.sec * 1000 + cru.utime.usec / 1000;
+	t[3] = cru.stime.sec * 1000 + cru.stime.usec / 1000;
+
+	/* BUG */
+	return t[0] + t[1] + t[2] + t[3];
 }
+
+

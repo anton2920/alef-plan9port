@@ -98,6 +98,13 @@ getpid()
 
 
 int
+getrusage(int who, Rusage *rusage)
+{
+	return syscall(SYS_getrusage, who, (int)rusage, 0);
+}
+
+
+int
 ioctl(int fd, uint request, ...)
 {
 	return syscall(SYS_ioctl, fd, request, (int)...);

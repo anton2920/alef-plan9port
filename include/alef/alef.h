@@ -483,6 +483,27 @@ aggr Stat
 	int	spare[20];
 };
 
+/* From <sys/resource.h>. */
+aggr Rusage
+{
+	Timeval	utime;	/* user time used */
+	Timeval	stime;	/* system time used */
+	int	maxrss;	/* max resident set size */
+	int	ixrss;	/* integral shared memory size */
+	int	idrss;	/* integral unshared data " */
+	int	isrss;		/* integral unshared stack " */
+	int	minflt;	/* page reclaims */
+	int	majflt;	/* page faults */
+	int	nswap;	/* swaps */
+	int	inblock;	/* block input operations */
+	int	oublock;	/* block output operations */
+	int	msgsnd;	/* messages sent */
+	int	msgrcv;	/* messages received */
+	int	nsignals;	/* signals received */
+	int	nvcsw;	/* voluntary context switches */
+	int	nivcsw;	/* involuntary " */
+};
+
 void	_exit(int);
 int	_umtx_op(void*, int, int, void*, void*);
 int	clock_gettime(int, Timespec*);
@@ -490,6 +511,7 @@ int	fchmod(int, usint);
 int	fstat(int, Stat*);
 int	ftruncate(int, int);
 int	futimes(int, Timeval*);
+int	getrusage(int, Rusage*);
 int	ioctl(int, uint, ...);
 int	kill(int, int);
 void*	mmap(void*, uint, int, int, int, int);
