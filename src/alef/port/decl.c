@@ -7,7 +7,7 @@
 #include "globl.h"
 #include "y.tab.h"
 
-char *sclass[] = 
+char *sclass[] =
 {
 	"????",
 	"internal",
@@ -36,7 +36,7 @@ pbt(Sym *p, Type *t)
 					amap(l->name),
 					amap(p->name));
 			else
-				Bprint(&ao, "complex %s %s:%s;\n", 
+				Bprint(&ao, "complex %s %s:%s;\n",
 					amap(l->name),
 					amap(curfunc->sym->name),
 					amap(p->name));
@@ -66,7 +66,7 @@ leaveblock(void)
 			continue;
 		if(opt('s'))
 			print("p<%d> %s %T %s offset %d\n",
-			Scope, sclass[t->class], t->t, t->s->name, t->offset); 
+			Scope, sclass[t->class], t->t, t->s->name, t->offset);
 
 		if(t->ref == 0)
 			warn(0, "%s %T %s declared but not used",
@@ -233,7 +233,7 @@ boundtype(Type *poly, Type *pt)
 {
 	Type *f;
 
-	for(f = poly->param; f; f = f->next)
+	for(f = poly->param; f; f = f->polylink)
 		if(f->sym == pt->sym)
 			break;
 	if(!f)
@@ -389,7 +389,7 @@ fundecl(Type *basic, Node *name, Node *args)
 	proto->t = at(TFUNC, basic);
 
 	curfunc = proto;		/* For return typechecking */
-	
+
 	/* Check for prototypes */
 	if(s->instance) {
 		instance = s->instance->t;
@@ -477,7 +477,7 @@ adtchk(Node *adtp, Node *fun)
 
 	p = fun->sym->instance->t->proto;
 	if(protocmp(adtp, p))
-		diag(fun, "prototype mismatch %P and %P", adtp, p);	
+		diag(fun, "prototype mismatch %P and %P", adtp, p);
 }
 
 /*

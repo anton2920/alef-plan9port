@@ -276,6 +276,7 @@ struct Type
 	Type*	param;
 	Type*	next;
 	Type*	subst;
+	Type*	polylink;
 	int	size;
 	int	offset;
 	union {

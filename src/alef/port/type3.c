@@ -727,7 +727,7 @@ polybuild(Type *base, Type *param)
 {
 	Node *n;
 	Sym *tn;
-	Type *t;
+	Type *t, *tv;
 
 	if(opt('b'))
 		print("buildpoly: %T[%T]\n", base, param);
@@ -739,7 +739,12 @@ polybuild(Type *base, Type *param)
 	tn = base->dcltree->left->left->sym;
 
 	n = base->dcltree->poly;
-	for(t = param; t; t = t->variant) {
+	for(t = param; t; t = tv) {
+		/* NOTE(anton2920): param is a tuple of types, so we need to truncate it to single type, preserving a connection so we can later correctly bound it. */
+		tv = t->variant;
+		t->polylink = tv;
+		t->variant = nil;
+
 		if(n == nil)
 			goto paramc;
 
