@@ -470,6 +470,7 @@ polysub(Type *pl, Type *t)
 		for(f = pl; f; f = f->polylink) {
 			if(f->sym == t->sym) {
 				*nt = *f;
+				nt->member = t->member;
 				nt->size = t->size;
 				nt->variant = 0;
 				nt->subst = t;
