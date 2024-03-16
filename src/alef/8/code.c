@@ -109,7 +109,7 @@ store(Node *from, Node *to)
 			instruction(op, from, to);
 			return;
 		}
-		
+
 		if(t == to->t->type)
 			reg(&n1, to->t, from);
 		else
@@ -132,7 +132,7 @@ assign(Node *src, Node *dst)
 	Inst *nofix;
 
 	if(opt('a'))
-		print("assign: %N = %N\n", dst, src); 
+		print("assign: %N = %N\n", dst, src);
 
 	if(dst == ZeroN)
 		return;
@@ -323,7 +323,7 @@ genaddr(Node *expr, Node *dst)
 	}
 }
 
-/* 
+/*
  * generate an l-value into a register
  */
 void
@@ -572,6 +572,7 @@ genexp(Node *rval, Node *lval)
 	if(rval->t) {
 		switch(rval->t->type) {
 		case TADT:
+		case TPOLY:
 		case TUNION:
 		case TAGGREGATE:
 			gencomplex(rval, lval);
@@ -596,14 +597,14 @@ genexp(Node *rval, Node *lval)
 		case OLAND:
 		case OLOR:
 			break;
-	
+
 		default:
 			regret(&nspare, r->t);
 			genexp(r, &nspare);
-	
+
 			nstack = stknode(r->t);
 			assign(&nspare, nstack);
-	
+
 			regfree(&nspare);
 			nspare = *rval;
 			nspare.right = nstack;
@@ -727,13 +728,13 @@ genexp(Node *rval, Node *lval)
 			assign(&nspare, &nl);
 			codmop(rval, r, ZeroN, &nl);
 			assign(&nl, &nspare);
-	
+
 			regfree(&nl);
 			if(!isaddr(l))
 				regfree(&nspare);
 			break;
 		}
-	
+
 		/*
 		 * Clear out CX
 		 * set to nspare
@@ -777,7 +778,7 @@ genexp(Node *rval, Node *lval)
 			assign(&nspare, &nl);
 			codmop(rval, r, &nl, &nl);
 			assign(&nl, &nspare);
-	
+
 			regfree(&nl);
 			if(!isaddr(l))
 				regfree(&nspare);
@@ -805,7 +806,7 @@ genexp(Node *rval, Node *lval)
 		assign(&nl, lval);
 		regfree(&nl);
 		break;
-		
+
 	case OMULEQ:
 	case ODIVEQ:
 	case OMODEQ:
@@ -931,7 +932,7 @@ genexp(Node *rval, Node *lval)
 			codmop(rval, r, lval, lval);
 			break;
 		}
-		
+
 		/*
 		 * Clear out CX
 		 * set to nspare
@@ -984,7 +985,7 @@ genexp(Node *rval, Node *lval)
 			codmop(rval, r, lval, lval);
 			break;
 		}
-		
+
 		if(l->sun >= r->sun) {
 			reg(&nl, l->t, lval);
 			genexp(l, &nl);
@@ -1228,7 +1229,7 @@ evalarg(Node *n, int pass)
 				break;
 			goto compute;
 		}
-	}	
+	}
 }
 
 /*
@@ -1251,7 +1252,7 @@ genarg(Node *n)
 		ratv.type = OINDREG;
 		ratv.ival = Argbase;
 		evalarg(n, 1);
-		return;	
+		return;
 	}
 
 	evalarg(n, 1);
@@ -1290,7 +1291,7 @@ setcond(Node *lval)
 
 	true = ipc;
 	assign(con(1), lval);
-	instruction(AJMP, ZeroN, ZeroN);	
+	instruction(AJMP, ZeroN, ZeroN);
 	false = ipc;
 	label(true, ipc->pc+1);
 	assign(con(0), lval);
@@ -1306,7 +1307,7 @@ andand(Node *l, Node *r, int bool)
 		instruction(AJMP, ZeroN, ZeroN);
 	else
 		gencond(l, ZeroN, bool);
-	
+
 	false = ipc;
 
 	if(r->t == ZeroT)
@@ -1331,7 +1332,7 @@ oror(Node *l, Node *r, int bool)
 		instruction(AJMP, ZeroN, ZeroN);
 	else
 		gencond(l, ZeroN, !bool);
-	
+
 	false1 = ipc;
 
 	if(r->t == ZeroT)
@@ -1406,7 +1407,7 @@ gencond(Node *rval, Node *lval, int bool)
 			genexp(l, nstack);
 			rval->left = nstack;
 			gencond(rval, lval, bool);
-			return;				
+			return;
 		}
 
 		if(bool)
@@ -1696,6 +1697,7 @@ gencomplex(Node *rval, Node *lval)
 		n2.ival = 0;
 		cominit(&n2, lval->t, rval, o);
 		regfree(&n2);
+
 		break;
 
 	default:
@@ -1703,12 +1705,12 @@ gencomplex(Node *rval, Node *lval)
 			warn(rval, "result ignored");
 			break;
 		}
-	
+
 		size = rval->t->size;
 		size /= builtype[TINT]->size;
 		if(size < 6 && notunion(rval->t) && bitmove(rval, lval))
 			break;
-		
+
 		rs3 = 0;
 		rs1n = ZeroN;
 		rs2n = ZeroN;
@@ -1742,7 +1744,7 @@ gencomplex(Node *rval, Node *lval)
 			lval->t = builtype[TINT];
 			genaddr(lval, &sav1);
 			lval->t = t;
-	
+
 			rs2 = regsave(D_SI);
 			if(needreg(D_SI, &sav2, ZeroN))
 				rs2n = rpush(D_SI);
@@ -1752,7 +1754,7 @@ gencomplex(Node *rval, Node *lval)
 			genaddr(rval, &sav2);
 			rval->t = t;
 		}
-	
+
 		if(needreg(D_CX, &sav3, ZeroN)) {
 			rs3 = regsave(D_CX);
 			rs3n = rpush(D_CX);
