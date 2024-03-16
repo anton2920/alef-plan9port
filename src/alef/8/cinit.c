@@ -55,7 +55,7 @@ cominit(Node *v, Type *t, Node *i, int off)
 		n.islval = 0;
 		genexp(&n, ZeroN);
 		break;
-	
+
 	case TARRAY:
 		veccnt = 0;
 		listcount(i->left, 0);
@@ -76,12 +76,15 @@ cominit(Node *v, Type *t, Node *i, int off)
 				ind += sz;
 				continue;
 			}
-			ind = in->left->ival*sz;	
+			ind = in->left->ival*sz;
 			cominit(v, t->next, in->right, off+ind);
 			ind += sz;
-		}	
+		}
 		break;
 
+	case TPOLY:
+		t = polyshape;
+		/* Fallthough. */
 	case TADT:
 	case TUNION:
 	case TAGGREGATE:
