@@ -147,6 +147,8 @@ tyarg(Node *proto, Type *poly)
 
 	if(t->type == TPOLY && poly) {
 		if(arg->t->type == TPOLY) {
+			/* print("NOTE in func.c!!!\n"); */
+			/* NOTE(anton2920): s/variant/polylink/? */
 			for(f = poly->param; f; f = f->variant) {
 				if(f->sym == arg->t->sym) {
 					cc.mismatch = cc.argc;

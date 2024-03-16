@@ -84,8 +84,7 @@ telem(int i, Type *t, char *buf)
 	if(tn == TARRAY && t->next && t->next->size != 0)
 		i += sprint(buf+i, "[%d]", t->size/t->next->size);
 	else
-	/* TODO(anton2920): check for 't->sym' while tuples of poly types are broken. */
-	if((tn == TPOLY) && (t->sym))
+	if(tn == TPOLY)
 		i += sprint(buf+i, "%s<%s>", _typestr[tn], t->sym->name);
 	else
 		i += sprint(buf+i, "%s", _typestr[tn]);
@@ -468,6 +467,8 @@ polysub(Type *pl, Type *t)
 	nt = abt(TXXX);
 	*nt = *t;
 	if(t->type == TPOLY) {
+		/* print("NOTE in type2.c!!!\n"); */
+		/* NOTE(anton2920): s/variant/polylink/? */
 		for(f = pl; f; f = f->variant) {
 			if(f->sym == t->sym) {
 				*nt = *f;

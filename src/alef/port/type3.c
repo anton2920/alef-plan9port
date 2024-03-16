@@ -371,6 +371,7 @@ covertype(Node *n)
 		break;
 	default:
 		t = at(n->t->type, n->t->next);
+		t->sym = n->t->sym;
 		t->size = n->t->size;
 		*agtail = t;
 		agtail = &t->member;
