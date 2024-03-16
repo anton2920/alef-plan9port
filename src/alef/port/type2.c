@@ -467,9 +467,7 @@ polysub(Type *pl, Type *t)
 	nt = abt(TXXX);
 	*nt = *t;
 	if(t->type == TPOLY) {
-		/* print("NOTE in type2.c!!!\n"); */
-		/* NOTE(anton2920): s/variant/polylink/? */
-		for(f = pl; f; f = f->variant) {
+		for(f = pl; f; f = f->polylink) {
 			if(f->sym == t->sym) {
 				*nt = *f;
 				nt->size = t->size;
