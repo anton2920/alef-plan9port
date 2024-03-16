@@ -375,6 +375,7 @@ tasgninit(Type *t, Node *i, int off)
 		break;
 
 	case TADT:
+	case TPOLY:
 	case TUNION:
 	case TAGGREGATE:
 		if(i->type == OINDEX) {
