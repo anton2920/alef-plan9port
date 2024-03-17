@@ -84,7 +84,7 @@ telem(int i, Type *t, char *buf)
 	if(tn == TARRAY && t->next && t->next->size != 0)
 		i += sprint(buf+i, "[%d]", t->size/t->next->size);
 	else
-	if(tn == TPOLY)
+	if((tn == TPOLY) && (t->sym))
 		i += sprint(buf+i, "%s<%s>", _typestr[tn], t->sym->name);
 	else
 		i += sprint(buf+i, "%s", _typestr[tn]);
