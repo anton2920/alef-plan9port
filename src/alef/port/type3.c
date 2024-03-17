@@ -489,6 +489,11 @@ mkasgn(Node *n, ulong off)
 			n->right = an(OCONV, r, nil);
 			n->right->t = l->t;
 		}
+
+		/* NOTE(anton2920): deal with bound polymorphic type in $rhs. */
+		if(r->t->subst != nil)
+			typechk(r, 0);
+
 		n->t = l->t;
 		sptr = sptr->member;
 		/* Skip function declarations in an adt */
