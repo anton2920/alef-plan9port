@@ -9,6 +9,7 @@
 static Type **agtail;
 static Type *sptr;
 static Type *tu;
+static int	vasgngened;
 
 void
 applyarray(Node *n, Type *t)
@@ -608,19 +609,19 @@ mkvasgn(Node *n, ulong off)
 
 		n->right = r;
 
-		if(typeval(typeasgn, l->t, sptr)) {
-			diag(n, "incompatible types: %T := %T", l->t, sptr);
-			return 1;
-		}
+		if(r->t->subst == nil) {
+			if(typeval(typeasgn, l->t, sptr)) {
+				diag(n, "incompatible types: %T = %T", l->t, sptr);
+				return 1;
+			}
 
-		/* Insert the cast */
-		if(typecmp(l->t, sptr, 5) == 0) {
-			n->right = an(OCONV, r, nil);
-			n->right->t = l->t;
-		}
-
-		/* NOTE(anton2920): deal with bound polymorphic type in $rhs. */
-		if(r->t->subst != nil) {
+			/* Insert the cast */
+			if(typecmp(l->t, sptr, 5) == 0) {
+				n->right = an(OCONV, r, nil);
+				n->right->t = l->t;
+			}
+		} else {
+			vasgngened = 1;
 			n->type = OVASGN;
 			typechk(n, 0);
 		}
@@ -639,10 +640,9 @@ mkvasgn(Node *n, ulong off)
 int
 tuplevasgn(Node *n)
 {
-	Node *r;
+	Node *l, *r;
+	l = n->left;
 	r = n->right;
-
-	// __asm__ ("int3");
 
 	if(typechk(r, 0))
 		return 1;
@@ -657,9 +657,14 @@ tuplevasgn(Node *n)
 	tu = n->t;
 	sptr = tu->next;
 
+	vasgngened = 0;
 	if(mkvasgn(n->left->left, 0))
 		return 1;
 
+	if (!vasgngened) {
+		diag(n, "incompatible types: %T := %T", l->t, r->t);
+		return 1;
+	}
 	if(sptr != nil) {
 		diag(n, "tuple is incompatible %t", tu);
 		return 1;

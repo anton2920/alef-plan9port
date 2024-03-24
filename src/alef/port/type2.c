@@ -948,6 +948,6 @@ tyvasgn(Node *n)
 		return 0;
 	}
 
-	diag(n, "1 incompatible types: %T := %T", l->t, r->t);
+	diag(n, "incompatible types: %T := %T", l->t, r->t);
 	return 1;
 }
