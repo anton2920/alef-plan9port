@@ -345,7 +345,7 @@ typepoly(Node *n, int eval)
 {
 	Type *ot;
 	int dealloc;
-	Node *x, *tmp, *ptr;
+	Node *x, *y, *tmp, *ptr;
 
 	line = n->srcline;
 
@@ -369,17 +369,24 @@ typepoly(Node *n, int eval)
 		tmp = stknode(ot);
 		ptr = stknode(at(TIND, ot));
 
-		x = an(ODOT, x, nil);
-		x->sym = polyptr;
-		x = an(OASGN, dupn(ptr), x);
-		n->left = x;
+		y = an(ODOT, x, nil);
+		y->sym = polyptr;
+		y = an(OASGN, dupn(ptr), y);
 
 		x = an(OIND, dupn(ptr), nil);
 		x = an(OASGN, dupn(tmp), x);
-		n->left = an(OLIST, n->left, x);
-
+		n->left = x;
 		x = an(OCALL, dupn(unallocnode), ptr);
 		n->left = an(OLIST, n->left, x);
+
+		x = an(OCONST, nil, nil);
+		x->t = builtype[TIND];
+		x->t->next = builtype[TINT];
+		x->ival = 0;
+		x = an(ONEQ, dupn(ptr), x);
+		n->left = an(OIF, x, an(OELSE, n->left, nil));
+
+		n->left = an(OLIST, y, n->left);
 		n->right = tmp;
 		n->type = OBLOCK;
 		n->t = ot;
