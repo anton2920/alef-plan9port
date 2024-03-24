@@ -883,7 +883,7 @@ int
 tyvasgn(Node *n)
 {
 	Type *t;
-	Node *l, *r;
+	Node *l, *r, *x, *y, *ptr, *tmp;
 
 	l = n->left;
 	r = n->right;
@@ -899,29 +899,47 @@ tyvasgn(Node *n)
 		t = r->t;
 		t->subst = nil;
 		r->t = polyshape;
-		r = an(OTCHKED, r, nil);
-		r = an(ODOT, r, nil);
-		r->sym = polyptr;
-		r = an(OCONV, r, nil);
-		r->t = at(TIND, t);
-		r = an(OIND, r, nil);
-		r->t = t;
+		x = an(OTCHKED, dupn(r), nil);
 
-		if(typeval(typeasgn, l->t, r->t)) {
-			diag(n, "incompatible types: %T := %T", l->t, r->t);
+		tmp = stknode(t);
+		ptr = stknode(at(TIND, t));
+
+		y = an(ODOT, x, nil);
+		y->sym = polyptr;
+		y = an(OASGN, dupn(ptr), y);
+
+		x = an(OIND, dupn(ptr), nil);
+		x->t = t;
+		if(typeval(typeasgn, l->t, x->t)) {
+			diag(n, "incompatible types: %T := %T", l->t, x->t);
 			return 1;
 		}
 
-		if(typecmp(l->t, r->t, 5) == 0) {
-			r = an(OCONV, r, nil);
-			r->t = l->t;
+		if(typecmp(l->t, x->t, 5) == 0) {
+			x = an(OCONV, x, nil);
+			x->t = l->t;
 		}
 
-		n->right = r;
-		n->type = OASGN;
-		n->t = l->t;
+		x = an(OASGN, dupn(tmp), x);
+		r->left = x;
+
+		x = an(OCONST, nil, nil);
+		x->t = at(TIND, t);
+		x = an(ONEQ, dupn(ptr), x);
+		r->left = an(OIF, x, an(OELSE, r->left, nil));
+
+		r->left = an(OLIST, y, r->left);
+		r->right = tmp;
+		r->type = OBLOCK;
+		r->t = t;
+
 		if(typechk(r, 0))
 			fatal("tyvasgn");
+
+		n->type = OASGN;
+		n->right = r;
+		n->t = t;
+
 		return 0;
 	}
 
@@ -930,6 +948,6 @@ tyvasgn(Node *n)
 		return 0;
 	}
 
-	diag(n, "incompatible types: %T := %T", l->t, r->t);
+	diag(n, "1 incompatible types: %T := %T", l->t, r->t);
 	return 1;
 }

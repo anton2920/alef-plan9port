@@ -533,6 +533,141 @@ tupleasgn(Node *n)
 	return 0;
 }
 
+static
+int
+mkvasgn(Node *n, ulong off)
+{
+	Node *r, *l;
+	Type *svsptr;
+
+	line = n->srcline;
+
+	if(n == nil)
+		return 0;
+
+	if(sptr == 0) {
+		diag(n, "tuples are incompatible %t", tu);
+		return 1;
+	}
+
+	switch(n->type) {
+	case OLIST:
+		if(mkvasgn(n->left, off) || mkvasgn(n->right, off))
+			return 1;
+		break;
+	default:
+		/*
+		 * nil in the l-val means skip the assignment
+		 */
+		if(n->type == OCONST && n->ival == 0) {
+			n->type = OLIST;
+			n->left = nil;
+			n->right = nil;
+			n->t = nil;
+			sptr = sptr->member;
+			break;
+		}
+
+		if(typechk(n, 0))
+			return 1;
+
+		if(n->type == OILIST) {
+			n->type = OLIST;
+			svsptr = sptr;
+			if(n->t->type != TAGGREGATE) {
+				diag(n, "tuple must be aggregate %T", n->t);
+				return 1;
+			}
+			sptr = n->t->next;
+			if(mkvasgn(n->left, off+svsptr->offset))
+				return 1;
+			if(sptr != nil) {
+				diag(n, "tuple is incompatible %t", tu);
+				return 1;
+			}
+			sptr = svsptr->member;
+			return 0;
+		}
+
+		if(chklval(n))
+			return 1;
+
+		l = an(0, nil, nil);
+		*l = *n;
+
+		n->type = OASGN;
+		n->left = l;
+
+		/* OREG is a placeholder until we compute $rhs in genexp */
+		r = an(OREGISTER, nil, nil);
+		r->t = sptr;
+		r = an(OADD, con(off+sptr->offset), r);
+		r->t = at(TIND, sptr);
+		r = an(OIND, r, nil);
+		r->t = sptr;
+
+		n->right = r;
+
+		if(typeval(typeasgn, l->t, sptr)) {
+			diag(n, "incompatible types: %T := %T", l->t, sptr);
+			return 1;
+		}
+
+		/* Insert the cast */
+		if(typecmp(l->t, sptr, 5) == 0) {
+			n->right = an(OCONV, r, nil);
+			n->right->t = l->t;
+		}
+
+		/* NOTE(anton2920): deal with bound polymorphic type in $rhs. */
+		if(r->t->subst != nil) {
+			n->type = OVASGN;
+			typechk(n, 0);
+		}
+
+		n->t = l->t;
+		sptr = sptr->member;
+		/* Skip function declarations in an adt */
+		while(sptr && sptr->type == TFUNC)
+			sptr = sptr->member;
+		break;
+	}
+	return 0;
+
+}
+
+int
+tuplevasgn(Node *n)
+{
+	Node *r;
+	r = n->right;
+
+	// __asm__ ("int3");
+
+	if(typechk(r, 0))
+		return 1;
+
+	if(r->t->type != TAGGREGATE) {
+		diag(n, "tuple must be aggregate %T", r->t);
+		return 1;
+	}
+
+	n->type = OASGN;
+	n->t = r->t;
+	tu = n->t;
+	sptr = tu->next;
+
+	if(mkvasgn(n->left->left, 0))
+		return 1;
+
+	if(sptr != nil) {
+		diag(n, "tuple is incompatible %t", tu);
+		return 1;
+	}
+
+	return 0;
+}
+
 ulong
 tsigacc(Type *t, ulong sig, int depth)
 {

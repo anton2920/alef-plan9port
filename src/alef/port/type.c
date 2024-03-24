@@ -380,9 +380,7 @@ typepoly(Node *n, int eval)
 		n->left = an(OLIST, n->left, x);
 
 		x = an(OCONST, nil, nil);
-		x->t = builtype[TIND];
-		x->t->next = builtype[TINT];
-		x->ival = 0;
+		x->t = at(TIND, ot);
 		x = an(ONEQ, dupn(ptr), x);
 		n->left = an(OIF, x, an(OELSE, n->left, nil));
 
@@ -916,6 +914,10 @@ typechk(Node *n, int evalfor)
 		break;
 
 	case OVASGN:
+		switch(l->type) {
+		case OILIST:
+			return tuplevasgn(n);	/* lhs is complex shape */
+		}
 		return tyvasgn(n);
 
 	case OASGN:

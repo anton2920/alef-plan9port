@@ -195,6 +195,7 @@ int	tconv(Fmt*);
 Type*	tmcpy(Type*);
 void	treeflat(Node*, Node**);
 int	tupleasgn(Node*);
+int	tuplevasgn(Node*);
 void	tupleof(Node*);
 int	tyaddr(Node*);
 int	tyalloc(Node*);
