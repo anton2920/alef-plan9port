@@ -25,10 +25,24 @@ void error(int errno)
 }
 
 
+int
+_close(int fd)
+{
+	return syscall(SYS_close, fd, 0, 0);
+}
+
+
 void
 _exit(int code)
 {
 	syscall(SYS_exit, code, 0, 0);
+}
+
+
+int
+_open(byte *path, int flags)
+{
+	return syscall(SYS_open, (int)path, flags, 0);
 }
 
 
@@ -40,16 +54,16 @@ _umtx_op(void *obj, int op, int val, void *uaddr, void *uaddr2)
 
 
 int
-clock_gettime(int clock_id, Timespec *tp)
+chdir(byte *path)
 {
-	return syscall(SYS_clock_gettime, clock_id, (int)tp, 0);
+	return syscall(SYS_chdir, (int)path, 0, 0);
 }
 
 
 int
-close(int fd)
+clock_gettime(int clock_id, Timespec *tp)
 {
-	return syscall(SYS_close, fd, 0, 0);
+	return syscall(SYS_clock_gettime, clock_id, (int)tp, 0);
 }
 
 
@@ -68,9 +82,23 @@ fchmod(int fd, usint mode)
 
 
 int
+fcntl(int fd, int cmd, ...)
+{
+	return syscall(SYS_fcntl, fd, cmd, (int)...);
+}
+
+
+int
 fstat(int fd, Stat *sb)
 {
 	return syscall(SYS_fstat, fd, (int)sb, 0);
+}
+
+
+int
+fstatat(int fd, byte *path, Stat *sb, int flag)
+{
+	return syscall6(SYS_fstatat, fd, (int)path, (int)sb, flag, 0, 0);
 }
 
 
@@ -85,6 +113,13 @@ int
 futimes(int fd, Timeval *times)
 {
 	return syscall(SYS_futimes, fd, (int)times, 0);
+}
+
+
+int
+getdirentries(int fd, byte *buf, uint nbytes, byte *basep)
+{
+	return syscall6(SYS_getdirentries, fd, (int)buf, nbytes, (int)basep, 0, 0);
 }
 
 
@@ -118,6 +153,13 @@ kill(int pid, int sig)
 }
 
 
+int
+lstat(byte *path, Stat *sb)
+{
+	return syscall(SYS_freebsd11_lstat, (int)path, (int)sb, 0);
+}
+
+
 void*
 mmap(void *addr, uint len, int prot, int flags, int fd, int offset)
 {
@@ -129,13 +171,6 @@ int
 nanosleep(Timespec *rqtp, Timespec *rmtp)
 {
 	return syscall(SYS_nanosleep, (int)rqtp, (int)rmtp, 0);
-}
-
-
-int
-open(byte *path, int flags)
-{
-	return syscall(SYS_open, (int)path, flags, 0);
 }
 
 
@@ -168,6 +203,13 @@ int
 seek(int filedes, uint offset, int whence)
 {
 	return syscall6(SYS_lseek, filedes, offset, 0, whence, 0, 0);
+}
+
+
+int
+stat(byte *path, Stat *sb)
+{
+	return syscall(SYS_freebsd11_stat, (int)path, (int)sb, 0);
 }
 
 

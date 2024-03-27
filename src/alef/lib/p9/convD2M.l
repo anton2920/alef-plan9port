@@ -1,29 +1,103 @@
 #include	<alef.h>
 #include	<fcall.h>
 
-#define	CHAR(x)		*p++ = f->x
-#define	SHORT(x)	p[0] = f->x; p[1] = f->x>>8; p += 2
-#define	LONG(x)		p[0] = f->x; p[1] = f->x>>8; p[2] = f->x>>16; p[3] = f->x>>24; p += 4
-#define	VLONG(x)	p[0] = f->x; p[1] = f->x>>8; p[2] = f->x>>16; p[3] = f->x>>24;\
-				p[4] = 0; p[5] = 0; p[6] = 0; p[7] = 0; p += 8
-#define	STRING(x,n)	memmove(p, f->x, n); p += n
-
-int
-convD2M(Dir *f, byte *ap)
+uint
+sizeD2M(Dir *d)
 {
-	byte *p;
+	byte * sv[5];
+	int	i, ns, nstr, fixlen;
 
-	p = ap;
-	STRING(name, sizeof(f->name));
-	STRING(uid, sizeof(f->uid));
-	STRING(gid, sizeof(f->gid));
-	LONG(qid.path);
-	LONG(qid.vers);
-	LONG(mode);
-	LONG(atime);
-	LONG(mtime);
-	VLONG(length);
-	SHORT(type);
-	SHORT(dev);
-	return p - ap;
+	sv[0] = d->name;
+	sv[1] = d->uid;
+	sv[2] = d->gid;
+	sv[3] = d->muid;
+
+	fixlen = STATFIXLEN;
+	nstr = 4;
+
+	ns = 0;
+	for (i = 0; i < nstr; i++)
+		if (sv[i])
+			ns += strlen(sv[i]);
+
+	return fixlen + ns;
 }
+
+
+uint
+convD2M(Dir *d, byte *buf, uint nbuf)
+{
+	byte * p, *ebuf;
+	byte * sv[5];
+	int	i, ns, nsv[5], ss, nstr, fixlen;
+
+	if (nbuf < BIT16SZ)
+		return 0;
+
+	p = buf;
+	ebuf = buf + nbuf;
+
+	sv[0] = d->name;
+	sv[1] = d->uid;
+	sv[2] = d->gid;
+	sv[3] = d->muid;
+
+	fixlen = STATFIXLEN;
+	nstr = 4;
+
+	ns = 0;
+	for (i = 0; i < nstr; i++) {
+		if (sv[i])
+			nsv[i] = strlen(sv[i]);
+		else
+			nsv[i] = 0;
+		ns += nsv[i];
+	}
+
+	ss = fixlen + ns;
+
+	/* set size befor erroring, so user can know how much is needed */
+	/* note that length excludes count field itself */
+	PBIT16(p, ss - BIT16SZ);
+	p += BIT16SZ;
+
+	if (ss > nbuf)
+		return BIT16SZ;
+
+	PBIT16(p, d->type);
+	p += BIT16SZ;
+	PBIT32(p, d->dev);
+	p += BIT32SZ;
+	PBIT8(p, d->qid.type);
+	p += BIT8SZ;
+	PBIT32(p, d->qid.vers);
+	p += BIT32SZ;
+	PBIT64(p, d->qid.path);
+	p += BIT64SZ;
+	PBIT32(p, d->mode);
+	p += BIT32SZ;
+	PBIT32(p, d->atime);
+	p += BIT32SZ;
+	PBIT32(p, d->mtime);
+	p += BIT32SZ;
+	PBIT64(p, d->length);
+	p += BIT64SZ;
+
+	for (i = 0; i < nstr; i++) {
+		ns = nsv[i];
+		if (p + ns + BIT16SZ > ebuf)
+			return 0;
+		PBIT16(p, ns);
+		p += BIT16SZ;
+		if (ns)
+			memmove(p, sv[i], ns);
+		p += ns;
+	}
+
+	if (ss != p - buf)
+		return 0;
+
+	return p - buf;
+}
+
+
