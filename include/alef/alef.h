@@ -9,13 +9,18 @@ enum
 	ERRLEN	=	64,
 
 	/* open */
-	OREAD	=	0,
-	OWRITE	=	1,
-	ORDWR	=	2,
-	OEXEC	=	3,
-	OTRUNC	=	16,
-	OCEXEC	=	32,
-	ORCLOSE	=	64,
+	OREAD	=	0,	/* open for read */
+	OWRITE	=	1,	/* write */
+	ORDWR	=	2,	/* read and write */
+	OEXEC	=	3,	/* execute, == read but check execute permission */
+	OTRUNC	=	16,	/* or'ed in (except for exec), truncate file first */
+	OCEXEC	=	32,	/* or'ed in, close on exec */
+	ORCLOSE	=	64,	/* or'ed in, remove on close */
+	ODIRECT	=	128,	/* or'ed in, direct access */
+	ONONBLOCK	=	256,	/* or'ed in, non-blocking call */
+	OEXCL	=	0x1000,	/* or'ed in, exclusive use (create only) */
+	OLOCK	=	0x2000,	/* or'ed in, lock after opening */
+	OAPPEND	=	0x4000,	/* or'ed in, append only */
 };
 	/* Runtime system constants settable by applications */
 
@@ -334,26 +339,31 @@ union Length
 
 aggr Qid
 {
-	uint	path;
+	uint	path[2];
 	uint	vers;
 	byte	type;
 };
 
 aggr Dir {
-	/* system–modified data */
-	uint    type;	/* server type */
-	uint    dev;	/* server subtype */
-
+	/* system-modified data */
+	usint	type;	/* server type */
+	uint	dev;	/* server subtype */
 	/* file data */
 	Qid	qid;	/* unique id from server */
 	uint	mode;	/* permissions */
 	uint	atime;	/* last read time */
 	uint	mtime;	/* last write time */
-	uint	length;	/* file length: see <u.h> */
+	int	length[2];	/* file length */
 	byte	*name;	/* last element of path */
 	byte	*uid;	/* owner name */
 	byte	*gid;	/* group name */
 	byte	*muid;	/* last modifier name */
+
+	/* 9P2000.u extensions */
+	uint	uidnum;	/* numeric uid */
+	uint	gidnum;	/* numeric gid */
+	uint	muidnum;	/* numeric muid */
+	byte	*ext;	/* extended info */
 };
 
 aggr Waitmsg
@@ -396,19 +406,19 @@ int	segbrk(void*, void*);
 int	segdetach(void*);
 int	segflush(void*, uint);
 int	segfree(void*, uint);
-int	stat(byte*, byte*);
 int	unmount(byte*, byte*);
 int	wait(Waitmsg*);
 int	wstat(byte*, byte*);
 /*
  *	Directory access
  */
-int	convM2D(byte*, Dir*);
-int	convD2M(Dir*, byte*);
+uint	convM2D(byte*, uint, Dir*, byte*);
+uint	convD2M(Dir*, byte*, uint);
 Dir*	dirfstat(int);
 int	dirfwstat(int, Dir*);
-int	dirread(int, Dir*, int);
-int	dirstat(byte*, Dir*);
+int	dirread(int, Dir**);
+int	dirreadall(int, Dir**);
+Dir*	dirstat(byte*);
 int	dirwstat(byte*, Dir*);
 /*
  *  Network dialing and authentication
@@ -441,6 +451,20 @@ int	times(int*);
 /*	--CUT HERE--
  *	Definitions specific to FreeBSD
  */
+/* From <sys/dirent.h>. */
+aggr Dirent
+{
+	uint	fileno[2];	/* file number of entry */
+	int	off[2];	/* directory offset of entry */
+	usint	reclen;	/* length of this record */
+	byte	type;	/* file type, see below */
+	byte	pad0;
+	usint	namlen;	/* length of string in name */
+	usint	pad1;
+#define	MAXNAMLEN	255
+	byte	name[MAXNAMLEN + 1];	/* name must be no longer than this */
+};
+
 /* From <sys/_timespec.h>. */
 aggr Timespec
 {
@@ -505,18 +529,28 @@ aggr Rusage
 };
 
 void	_exit(int);
+int	_close(int);
+int	_open(byte*, int, usint);
 int	_umtx_op(void*, int, int, void*, void*);
 int	clock_gettime(int, Timespec*);
 int	fchmod(int, usint);
+int	fcntl(int, int, ...);
 int	fstat(int, Stat*);
+int	fstatat(int, byte*, Stat*, int);
 int	ftruncate(int, int);
 int	futimes(int, Timeval*);
+int	getdirentries(int, byte*, uint, byte*);
 int	getrusage(int, Rusage*);
 int	ioctl(int, uint, ...);
 int	kill(int, int);
+int	lstat(byte*, Stat*);
+int	mkdir(byte*, usint);
 void*	mmap(void*, uint, int, int, int, int);
 int	nanosleep(Timespec*, Timespec*);
+int	rmdir(byte*);
 int	sched_yield();
+int	stat(byte*, Stat*);
 int	syscall(int, int, int, int);
 int	syscall6(int, int, int, int, int, int, int);
 int	syscall9(int, int, int, int, int, int, int, int, int, int);
+int	unlink(byte*);

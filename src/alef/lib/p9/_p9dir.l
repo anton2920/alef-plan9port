@@ -23,14 +23,14 @@
 #define	DIOCGMEDIASIZE	_IOC(IOC_OUT, 'd', 129, 8)	/* Get media size in bytes */
 
 intern
-int
+(int, int)
 disksize(int fd)
 {
 	int	mediasize[2];
 
-	if (ioctl(fd, DIOCGMEDIASIZE, mediasize) >= 0)
-		return mediasize[0];
-	return 0;
+	if (ioctl(fd, DIOCGMEDIASIZE, &mediasize[0]) >= 0)
+		return (mediasize[1], mediasize[0]);
+	return (0, 0);
 }
 
 
@@ -104,13 +104,13 @@ _p9dir(Stat *lst, Stat *st, byte *name, Dir *d, byte **str, byte *estr)
 		d->type = 'M';
 
 		d->muid = "";
-		d->qid.path = st->ino[0];
+		(d->qid.path[1], d->qid.path[0]) = (st->ino[1], st->ino[0]);
 		/*
 		 * do not include st->dev in path, because
 		 * automounters give the same file system different
 		 * dev values for successive mounts, causing
 		 * spurious write warnings in acme and sam.
-		d->qid.path |= (uvlong)st->dev<<32;
+		d->qid.path[1] |= st->dev[0];
 		 */
 #ifdef _HAVESTGEN
 		d->qid.vers = st->gen[0];
@@ -120,13 +120,13 @@ _p9dir(Stat *lst, Stat *st, byte *name, Dir *d, byte **str, byte *estr)
 		d->mode = st->mode & 0777;
 		d->atime = st->atim.sec;
 		d->mtime = st->mtim.sec;
-		d->length = st->size[0];
+		(d->length[1], d->length[0]) = (st->size[1], st->size[0]);
 
 		if (S_ISLNK(lst->mode)) {	/* yes, lst not st */
 			d->mode |= DMSYMLINK;
-			d->length = lst->size[0];
+			(d->length[1], d->length[0]) = (lst->size[1], lst->size[0]);
 		} else if (S_ISDIR(st->mode)) {
-			d->length = 0;
+			(d->length[1], d->length[0]) = (0, 0);
 			d->mode |= DMDIR;
 			d->qid.type = QTDIR;
 		} else if (S_ISFIFO(st->mode))
@@ -135,16 +135,16 @@ _p9dir(Stat *lst, Stat *st, byte *name, Dir *d, byte **str, byte *estr)
 			d->mode |= DMSOCKET;
 		else if (S_ISBLK(st->mode)) {
 			d->mode |= DMDEVICE;
-			d->qid.path = ('b' << 16) | st->rdev[0];
+			(d->qid.path[1], d->qid.path[0]) = (st->rdev[1], ('b' << 16) | st->rdev[0]);
 		} else if (S_ISCHR(st->mode)) {
 			d->mode |= DMDEVICE;
-			d->qid.path = ('c' << 16) | st->rdev[0];
+			(d->qid.path[1], d->qid.path[0]) = (st->rdev[1], ('c' << 16) | st->rdev[0]);
 		}
 		/* fetch real size for disks */
 		if (S_ISBLK(lst->mode)) {
 			int	fd;
 			if ((fd = open(name, OREAD)) >= 0) {
-				d->length = disksize(fd);
+				(d->length[1], d->length[0]) = disksize(fd);
 				close(fd);
 			}
 		}

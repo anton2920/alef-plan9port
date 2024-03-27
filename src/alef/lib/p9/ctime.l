@@ -41,7 +41,8 @@ aggr Tinfo
 };
 
 
-intern	byte	dmsize[12] =
+intern
+byte	dmsize[12] =
 {
 	31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 };
@@ -232,9 +233,10 @@ readtzfile(byte *file)
 	d = dirfstat(fd);
 	if (d == nil)
 		return nil;
-	p = malloc(d->length);
+	check d->length[1] == 0, "cannot allocate more than INT_MAX bytes";
+	p = malloc(d->length[0]);
 	if (p != nil)
-		readn(fd, p, d->length);
+		readn(fd, p, d->length[0]);
 	free(d);
 	close(fd);
 	return p;

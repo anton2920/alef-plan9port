@@ -25,10 +25,24 @@ void error(int errno)
 }
 
 
+int
+_close(int fd)
+{
+	return syscall(SYS_close, fd, 0, 0);
+}
+
+
 void
 _exit(int code)
 {
 	syscall(SYS_exit, code, 0, 0);
+}
+
+
+int
+_open(byte *path, int flags, usint mode)
+{
+	return syscall(SYS_open, (int)path, flags, mode);
 }
 
 
@@ -40,23 +54,16 @@ _umtx_op(void *obj, int op, int val, void *uaddr, void *uaddr2)
 
 
 int
+chdir(byte *path)
+{
+	return syscall(SYS_chdir, (int)path, 0, 0);
+}
+
+
+int
 clock_gettime(int clock_id, Timespec *tp)
 {
 	return syscall(SYS_clock_gettime, clock_id, (int)tp, 0);
-}
-
-
-int
-close(int fd)
-{
-	return syscall(SYS_close, fd, 0, 0);
-}
-
-
-int
-create(byte *path, int flags, uint mode)
-{
-	return syscall(SYS_open, (int)path, flags, mode);
 }
 
 
@@ -68,9 +75,23 @@ fchmod(int fd, usint mode)
 
 
 int
+fcntl(int fd, int cmd, ...)
+{
+	return syscall(SYS_fcntl, fd, cmd, (int)...);
+}
+
+
+int
 fstat(int fd, Stat *sb)
 {
 	return syscall(SYS_fstat, fd, (int)sb, 0);
+}
+
+
+int
+fstatat(int fd, byte *path, Stat *sb, int flag)
+{
+	return syscall6(SYS_fstatat, fd, (int)path, (int)sb, flag, 0, 0);
 }
 
 
@@ -85,6 +106,13 @@ int
 futimes(int fd, Timeval *times)
 {
 	return syscall(SYS_futimes, fd, (int)times, 0);
+}
+
+
+int
+getdirentries(int fd, byte *buf, uint nbytes, byte *basep)
+{
+	return syscall6(SYS_getdirentries, fd, (int)buf, nbytes, (int)basep, 0, 0);
 }
 
 
@@ -118,6 +146,20 @@ kill(int pid, int sig)
 }
 
 
+int
+lstat(byte *path, Stat *sb)
+{
+	return syscall(SYS_freebsd11_lstat, (int)path, (int)sb, 0);
+}
+
+
+int
+mkdir(byte *path, usint mode)
+{
+	return syscall(SYS_mkdir, (int)path, mode, 0);
+}
+
+
 void*
 mmap(void *addr, uint len, int prot, int flags, int fd, int offset)
 {
@@ -133,16 +175,16 @@ nanosleep(Timespec *rqtp, Timespec *rmtp)
 
 
 int
-open(byte *path, int flags)
+read(int fd, void *buf, int n)
 {
-	return syscall(SYS_open, (int)path, flags, 0);
+	return syscall(SYS_read, fd, (int)buf, n);
 }
 
 
 int
-read(int fd, void *buf, int n)
+rmdir(byte *path)
 {
-	return syscall(SYS_read, fd, (int)buf, n);
+	return syscall(SYS_rmdir, (int)path, 0, 0);
 }
 
 
@@ -168,6 +210,13 @@ int
 seek(int filedes, uint offset, int whence)
 {
 	return syscall6(SYS_lseek, filedes, offset, 0, whence, 0, 0);
+}
+
+
+int
+stat(byte *path, Stat *sb)
+{
+	return syscall(SYS_freebsd11_stat, (int)path, (int)sb, 0);
 }
 
 
@@ -211,6 +260,13 @@ int
 write(int fd, void *buf, int n)
 {
 	return syscall(SYS_write, fd, (int)buf, n);
+}
+
+
+int
+unlink(byte *path)
+{
+	return syscall(SYS_unlink, (int)path, 0, 0);
 }
 
 

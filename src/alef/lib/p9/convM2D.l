@@ -1,29 +1,100 @@
 #include	<alef.h>
-
-#define	CHAR(x)		f->x = *p++
-#define	SHORT(x)	f->x = (p[0] | (p[1]<<8)); p += 2
-#define	LONG(x)		f->x = (p[0] | (p[1]<<8) |\
-				(p[2]<<16) | (p[3]<<24)); p += 4
-#define	VLONG(x)	f->x = (p[0] | (p[1]<<8) |\
-				(p[2]<<16) | (p[3]<<24)); p += 8
-#define	STRING(x,n)	memmove(f->x, p, n); p += n
+#include	<fcall.h>
 
 int
-convM2D(byte *ap, Dir *f)
+statcheck(byte *buf, uint nbuf)
 {
-	byte *p;
+	byte * ebuf;
+	int	i, nstr;
 
-	p = ap;
-	STRING(name, sizeof(f->name));
-	STRING(uid, sizeof(f->uid));
-	STRING(gid, sizeof(f->gid));
-	LONG(qid.path);
-	LONG(qid.vers);
-	LONG(mode);
-	LONG(atime);
-	LONG(mtime);
-	VLONG(length);
-	SHORT(type);
-	SHORT(dev);
-	return p - ap;
+	ebuf = buf + nbuf;
+
+	if (nbuf < STATFIXLEN || nbuf != BIT16SZ + GBIT16(buf))
+		return - 1;
+
+	buf += STATFIXLEN - 4 * BIT16SZ;
+
+	nstr = 4;
+	for (i = 0; i < nstr; i++) {
+		if (buf + BIT16SZ > ebuf)
+			return - 1;
+		buf += BIT16SZ + GBIT16(buf);
+	}
+
+	if (buf != ebuf)
+		return - 1;
+
+	return 0;
 }
+
+
+intern byte nullstring[] = "";
+
+uint
+convM2D(byte *buf, uint nbuf, Dir *d, byte *strs)
+{
+	byte * p, *ebuf;
+	byte * sv[5];
+	int	i, ns, nstr;
+
+	if (nbuf < STATFIXLEN)
+		return 0;
+
+	p = buf;
+	ebuf = buf + nbuf;
+
+	p += BIT16SZ;	/* ignore size */
+	d->type = GBIT16(p);
+	p += BIT16SZ;
+	d->dev = GBIT32(p);
+	p += BIT32SZ;
+	d->qid.type = GBIT8(p);
+	p += BIT8SZ;
+	d->qid.vers = GBIT32(p);
+	p += BIT32SZ;
+	(d->qid.path[1], d->qid.path[0]) = GBIT64(p);
+	p += BIT64SZ;
+	d->mode = GBIT32(p);
+	p += BIT32SZ;
+	d->atime = GBIT32(p);
+	p += BIT32SZ;
+	d->mtime = GBIT32(p);
+	p += BIT32SZ;
+	(d->length[1], d->length[0]) = GBIT64(p);
+	p += BIT64SZ;
+
+	nstr = 4;
+	for (i = 0; i < nstr; i++) {
+		if (p + BIT16SZ > ebuf)
+			return 0;
+		ns = GBIT16(p);
+		p += BIT16SZ;
+		if (p + ns > ebuf)
+			return 0;
+		if (strs) {
+			sv[i] = strs;
+			memmove(strs, p, ns);
+			strs += ns;
+			*strs++ = '\0';
+		}
+		p += ns;
+	}
+
+	if (strs) {
+		d->name = sv[0];
+		d->uid = sv[1];
+		d->gid = sv[2];
+		d->muid = sv[3];
+		d->ext = nullstring;
+	} else {
+		d->name = nullstring;
+		d->uid = nullstring;
+		d->gid = nullstring;
+		d->muid = nullstring;
+		d->ext = nullstring;
+	}
+
+	return p - buf;
+}
+
+

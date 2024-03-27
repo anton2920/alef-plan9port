@@ -5,10 +5,10 @@ int	_p9dir(Stat*, Stat*, byte*, Dir*, byte**, byte*);
 Dir*
 dirfstat(int fd)
 {
-	Stat st;
-	int	nstr;
-	Dir * d;
 	byte	 * str, tmp[100];
+	int	nstr;
+	Stat st;
+	Dir * d;
 
 	if (fstat(fd, &st) < 0)
 		return nil;

@@ -8,85 +8,101 @@ intern int  samefile(Dir*, Dir*);
 intern int  crossedmnt(byte*);
 
 byte *
-getwd(byte *s , int size) 
+getwd(byte *s , int size)
 {
-	int depth, l;
-	byte *x, *v;
-	Dir *p, *db, root;
+	Dir * p, *root, **db;
+	int	depth, l, i;
+	byte * x, *v;
 
-	db = malloc(sizeof(Dir)*MAXDEPTH);
+	depth = 0;
+	db = malloc(sizeof(Dir * ) * MAXDEPTH);
 	rescue {
+		for (i = 0; i < depth; ++i) {
+			free(db[i]);
+		}
 		free(db);
 		return nil;
 	}
-	if(db == nil) {
+	if (db == nil) {
 		strcpy(s, "no memory");
 		raise;
 	}
 	x = s;
-	if(dirstat("/", &root) < 0) {
+	root = dirstat("/");
+	rescue {
+		free(root);
+		raise;
+	}
+	if (root == nil) {
 		strcpy(s, "stat of / failed");
 		raise;
 	}
 
-	for(depth = 0; depth < MAXDEPTH; depth++) {
-		p = &db[depth];
-		if(dirstat(".", p) < 0) {
+	for (depth = 0; depth < MAXDEPTH; depth++) {
+		p = dirstat(".");
+		if (p == nil) {
 			strcpy(s, "stat of . failed");
 			raise;
 		}
+		db[depth] = p;
 
-		DBG(print("stat: %s %lux\n", p->name, p->qid);)
+		DBG(print("stat: %s %lux\n", p->name, p->qid); )
 
-		if(samefile(p, &root)) {
+		if (samefile(p, root)) {
 			depth--;
 			break;
 		}
 
-		if(depth > 1 && samefile(p, &db[depth-1])) {
+		if (depth > 1 && samefile(p, db[depth-1])) {
 			p->name[0] = '#';
 			p->name[1] = p->type;
 			p->name[2] = '\0';
 			break;
 		}
 
-		if(crossedmnt(p->name))
+		if (crossedmnt(p->name))
 			namedev(p);
 
-		if(chdir("..") < 0) {
+		if (chdir("..") < 0) {
 			strcpy(s, "chdir .. failed");
 			raise;
 		}
 	}
 
-	while(depth >= 0) {
-		v = db[depth--].name;
-		DBG(print("comp: %s\n", v);)
-		if(v[0] == '.' && v[1] == '\0')
+	while (depth >= 0) {
+		v = db[depth--]->name;
+		DBG(print("comp: %s\n", v); )
+		if (v[0] == '.' && v[1] == '\0')
 			continue;
-		if(v[0] != '#')
+		if (v[0] != '#')
 			*x++ = '/';
 		l = strlen(v);
-		size -= l+1;
-		if(size <= 0) {
+		size -= l + 1;
+		if (size <= 0) {
 			strcpy(s, "buffer too small");
 			raise;
 		}
 		strcpy(x, v);
 		x += l;
 	}
-	if(x == s){
+	if (x == s) {
 		*x++ = '/';
 		*x = 0;
 	}
-	DBG(print("chdir %s\n", s);)
-	if(chdir(s) < 0) {
+	DBG(print("chdir %s\n", s); )
+	if (chdir(s) < 0) {
 		strcpy(s, "failed to return to .");
 		raise;
+	}
+
+	free(root);
+	for (i = 0; i < depth; ++i) {
+		free(db[i]);
 	}
 	free(db);
 	return s;
 }
+
 
 /*
  * In cases where we have no valid name from the stat we must search .. for an
@@ -97,78 +113,78 @@ getwd(byte *s , int size)
 intern void
 namedev(Dir *p)
 {
-	Dir dirb, tdirb;
-	byte *buf, sd[NAMELEN*2];
-	int fd, n;
-	byte *t, *e;
+	int	i, fd, ok;
+	Dir * dirs, *dirb, *tdirb;
+	int	ndirs;
+	byte sd[NAMELEN*2];
 
 	fd = open("..", OREAD);
-	if(fd < 0)
+	if (fd < 0)
 		return;
 
-	buf = malloc(DIRLEN*50);
-	rescue{
-		free(buf);
-		close(fd);
-		return;
-	}
-	if(buf == nil)
-		raise;
-	for(;;) {
-		n = read(fd, buf, DIRLEN*50);
-		if(n <= 0)
-			raise;
-		e = &buf[n];
-
-		for(t = buf; t < e; t += DIRLEN) {
-			convM2D(t, &dirb);
-			if((dirb.qid.path&CHDIR) == 0)
-				continue;
-			sprint(sd, "../%s/.", dirb.name);
-			if(dirstat(sd, &tdirb) < 0)
-				continue;
-
-			if(samefile(&tdirb, p) == 0)
-				continue;
-			close(fd);
-			free(buf);
-			DBG(print("%s->%s\n", p->name, dirb.name);)
-			strcpy(p->name, dirb.name);
-			return;
-		}
-	}
-	free(buf);
+	ndirs = dirreadall(fd, &dirs);
 	close(fd);
+	if (ndirs < 0) {
+		return;
+	}
+
+	for (i = 0; i < ndirs; ++i) {
+		dirb = &dirs[i];
+		if ((dirb->qid.type & QTDIR) != QTDIR)
+			continue;
+
+		sprint(sd, "../%s/.", dirb->name);
+		tdirb = dirstat(sd);
+		if (tdirb == nil) {
+			continue;
+		}
+
+		ok = samefile(tdirb, p);
+		free(tdirb);
+		if (!ok) {
+			continue;
+		}
+
+		DBG(print("%s->%s\n", p->name, dirb->name); )
+		strcpy(p->name, dirb->name);
+		break;
+
+	}
+	free(dirs);
 }
+
 
 intern int
 samefile(Dir *a, Dir *b)
 {
-	if(a->type != b->type)
+	if (a->type != b->type)
 		return 0;
-	if(a->dev != b->dev)
+	if (a->dev != b->dev)
 		return 0;
-	if(a->qid.path != b->qid.path)
+	if ((a->qid.path[1] != b->qid.path[1]) || (a->qid.path[0] != b->qid.path[0]))
 		return 0;
 	return 1;
 }
 
+
 /*
- * returns true if we must establish a child which derives the current 
+ * returns true if we must establish a child which derives the current
  * directory name after stat has failed to account for devices and the
  * mount table
  */
 intern int
 crossedmnt(byte *elem)
 {
-	byte junk[DIRLEN];
+	byte junk[sizeof(Stat)];
 
-	if((elem[0] == '.' || elem[0] == '/') && elem[1] == '\0')
+	if ((elem[0] == '.' || elem[0] == '/') && elem[1] == '\0')
 		return 1;
 
 	sprint(junk, "../%s", elem);
-	if(stat(junk, junk) < 0)
+	if (stat(junk, (Stat * )junk) < 0)
 		return 1;
 
 	return 0;
 }
+
+

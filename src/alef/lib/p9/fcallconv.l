@@ -1,190 +1,273 @@
 #include <alef.h>
 #include <fcall.h>
 
-intern void dumpsome(byte*, byte*, int);
-intern void fdirconv(byte*, Dir*);
+intern uint dumpsome(byte*, byte*, byte*, int);
+intern void fdirconv(byte*, byte*, Dir*);
+
+extern int	printcol;
+
+#define	QIDFMT	"(%.16llux %lud %s)"
+
+intern
+byte*
+qidtype(byte *s, byte t)
+{
+	byte * p;
+
+	p = s;
+	if (t & QTDIR)
+		*p++ = 'd';
+	if (t & QTAPPEND)
+		*p++ = 'a';
+	if (t & QTEXCL)
+		*p++ = 'l';
+	if (t & QTAUTH)
+		*p++ = 'A';
+	*p = '\0';
+	return s;
+}
+
+
+byte*
+seprint(byte *buf, byte *e, byte *fmt, ...)
+{
+	int	scol;
+
+	scol = printcol;
+	doprint(buf, e, fmt, ...);
+	printcol = scol;
+	return buf;
+}
+
 
 int
-fcallconv(Printspec *p)
+fcallconv(Printspec *spec)
 {
-	Dir d;
-	Fcall *f;
-	byte *buf;
-	int fid, type, tag, n;
+	Fcall * f;
+	int	fid, type, tag, i;
+	byte	buf[512], tmp[200];
+	byte	 * p, *e;
+	Dir * d;
+	Qid * q;
 
-	buf = malloc(2000);
-	if(buf == nil)
-		return sizeof(Fcall*);
-
-	f = *(Fcall **)p->o;
+	e = buf + sizeof(buf);
+	f = *(Fcall * *)spec->o;
 	type = f->type;
 	fid = f->fid;
 	tag = f->tag;
-	switch(type){
-	case Tnop:	/* 50 */
-		sprint(buf, "Tnop tag %ud", tag);
+	switch (type) {
+	case Tversion:	/* 100 */
+		seprint(buf, e, "Tversion tag %ud msize %ud version '%s'", tag, f->msize, f->version);
 		break;
-	case Rnop:
-		sprint(buf, "Rnop tag %ud", tag);
+	case Rversion:
+		seprint(buf, e, "Rversion tag %ud msize %ud version '%s'", tag, f->msize, f->version);
 		break;
-	case Tsession:	/* 52 */
-		sprint(buf, "Tsession tag %ud", tag);
+	case Tauth:	/* 102 */
+		seprint(buf, e, "Tauth tag %ud afid %d uname %s aname %s", tag,
+		    f->afid, f->uname, f->aname);
 		break;
-	case Rsession:
-		sprint(buf, "Rsession tag %ud", tag);
+	case Rauth:
+		seprint(buf, e, "Rauth tag %ud qid (%.16llux %lud %s)", tag,
+		    f->aqid.path, f->aqid.vers, qidtype(tmp, f->aqid.type));
 		break;
-	case Rerror:	/* 55 */
-		sprint(buf, "Rerror tag %ud error %.64s", tag, f->ename);
-		break;
-	case Tflush:	/* 56 */
-		sprint(buf, "Tflush tag %ud oldtag %d", tag, f->oldtag);
-		break;
-	case Rflush:
-		sprint(buf, "Rflush tag %ud", tag);
-		break;
-	case Tattach:	/* 58 */
-		sprint(buf, "Tattach tag %ud fid %d uname %.28s aname %.28s auth %.28s",
-			tag, f->fid, f->uname, f->aname, f->auth);
+	case Tattach:	/* 104 */
+		seprint(buf, e, "Tattach tag %ud fid %d afid %d uname %s aname %s", tag,
+		    fid, f->afid, f->uname, f->aname);
 		break;
 	case Rattach:
-		sprint(buf, "Rattach tag %ud fid %d qid 0x%ux|0x%ux",
-			tag, fid, f->qid.path, f->qid.vers);
+		seprint(buf, e, "Rattach tag %ud qid (%.16llux %lud %s)", tag,
+		    f->qid.path, f->qid.vers, qidtype(tmp, f->qid.type));
 		break;
-	case Tclone:	/* 60 */
-		sprint(buf, "Tclone tag %ud fid %d newfid %d", tag, fid, f->newfid);
+	case Rerror:	/* 107; 106 (Terror) illegal */
+		seprint(buf, e, "Rerror tag %ud ename %s", tag, f->ename);
 		break;
-	case Rclone:
-		sprint(buf, "Rclone tag %ud fid %d", tag, fid);
+	case Tflush:	/* 108 */
+		seprint(buf, e, "Tflush tag %ud oldtag %ud", tag, f->oldtag);
 		break;
-	case Twalk:	/* 62 */
-		sprint(buf, "Twalk tag %ud fid %d name %.28s", tag, fid, f->name);
+	case Rflush:
+		seprint(buf, e, "Rflush tag %ud", tag);
+		break;
+	case Twalk:	/* 110 */
+		p = seprint(buf, e, "Twalk tag %ud fid %d newfid %d nwname %d ", tag, fid, f->newfid, f->nwname);
+		if (f->nwname <= MAXWELEM)
+			for (i = 0; i < f->nwname; i++)
+				p = seprint(p, e, "%d:%s ", i, f->wname[i]);
 		break;
 	case Rwalk:
-		sprint(buf, "Rwalk tag %ud fid %d qid 0x%ux|0x%ux",
-			tag, fid, f->qid.path, f->qid.vers);
+		p = seprint(buf, e, "Rwalk tag %ud nwqid %ud ", tag, f->nwqid);
+		if (f->nwqid <= MAXWELEM)
+			for (i = 0; i < f->nwqid; i++) {
+				q = &f->wqid[i];
+				p = seprint(p, e, "%d:(%.16llux %lud %s) ", i,
+				    q->path, q->vers, qidtype(tmp, q->type));
+			}
 		break;
-	case Topen:	/* 64 */
-		sprint(buf, "Topen tag %ud fid %d mode %d", tag, fid, f->mode);
+	case Topen:	/* 112 */
+		seprint(buf, e, "Topen tag %ud fid %ud mode %d", tag, fid, f->mode);
 		break;
 	case Ropen:
-		sprint(buf, "Ropen tag %ud fid %d qid 0x%ux|0x%ux",
-			tag, fid, f->qid.path, f->qid.vers);
+		seprint(buf, e, "Ropen tag %ud qid (%.16llux %lud %s) iounit %ud", tag,
+		    f->qid.path, f->qid.vers, qidtype(tmp, f->qid.type), f->iounit);
 		break;
-	case Tcreate:	/* 66 */
-		sprint(buf, "Tcreate tag %ud fid %d name %.28s perm 0x%ux mode %d",
-			tag, fid, f->name, f->perm, f->mode);
+	case Topenfd:	/* 98 */
+		seprint(buf, e, "Topenfd tag %ud fid %ud mode %d", tag, fid, f->mode);
+		break;
+	case Ropenfd:
+		seprint(buf, e, "Ropenfd tag %ud qid (%.16llux %lud %s) iounit %ud unixfd %d", tag,
+		    f->qid.path, f->qid.vers, qidtype(tmp, f->qid.type), f->iounit, f->unixfd);
+		break;
+	case Tcreate:	/* 114 */
+		seprint(buf, e, "Tcreate tag %ud fid %ud name %s perm %M mode %d", tag, fid, f->name, (uint)f->perm, f->mode);
 		break;
 	case Rcreate:
-		sprint(buf, "Rcreate tag %ud fid %d qid 0x%ux|0x%ux",
-			tag, fid, f->qid.path, f->qid.vers);
+		seprint(buf, e, "Rcreate tag %ud qid (%.16llux %lud %s) iounit %ud ", tag,
+		    f->qid.path, f->qid.vers, qidtype(tmp, f->qid.type), f->iounit);
 		break;
-	case Tread:	/* 68 */
-		sprint(buf, "Tread tag %ud fid %d offset %d count %d",
-			tag, fid, f->offset, f->count);
+	case Tread:	/* 116 */
+		seprint(buf, e, "Tread tag %ud fid %d offset %lld count %ud",
+		    tag, fid, f->offset, f->count);
 		break;
 	case Rread:
-		n = sprint(buf, "Rread tag %ud fid %d count %d ", tag, fid, f->count);
-		dumpsome(buf+n, f->data, f->count);
+		p = seprint(buf, e, "Rread tag %ud count %ud ", tag, f->count);
+		dumpsome(p, e, f->data, f->count);
 		break;
-	case Twrite:	/* 70 */
-		n = sprint(buf, "Twrite tag %ud fid %d offset %d count %d ",
-			tag, fid, f->offset, f->count);
-		dumpsome(buf+n, f->data, f->count);
+	case Twrite:	/* 118 */
+		p = seprint(buf, e, "Twrite tag %ud fid %d offset %lld count %ud ",
+		    tag, fid, f->offset, f->count);
+		dumpsome(p, e, f->data, f->count);
 		break;
 	case Rwrite:
-		sprint(buf, "Rwrite tag %ud fid %d count %d", tag, fid, f->count);
+		seprint(buf, e, "Rwrite tag %ud count %ud", tag, f->count);
 		break;
-	case Tclunk:	/* 72 */
-		sprint(buf, "Tclunk tag %ud fid %d", tag, fid);
+	case Tclunk:	/* 120 */
+		seprint(buf, e, "Tclunk tag %ud fid %ud", tag, fid);
 		break;
 	case Rclunk:
-		sprint(buf, "Rclunk tag %ud fid %d", tag, fid);
+		seprint(buf, e, "Rclunk tag %ud", tag);
 		break;
-	case Tremove:	/* 74 */
-		sprint(buf, "Tremove tag %ud fid %d", tag, fid);
+	case Tremove:	/* 122 */
+		seprint(buf, e, "Tremove tag %ud fid %ud", tag, fid);
 		break;
 	case Rremove:
-		sprint(buf, "Rremove tag %ud fid %d", tag, fid);
+		seprint(buf, e, "Rremove tag %ud", tag);
 		break;
-	case Tstat:	/* 76 */
-		sprint(buf, "Tstat tag %ud fid %d", tag, fid);
+	case Tstat:	/* 124 */
+		seprint(buf, e, "Tstat tag %ud fid %ud", tag, fid);
 		break;
 	case Rstat:
-		n = sprint(buf, "Rstat tag %ud fid %d", tag, fid);
-		convM2D(f->stat, &d);
-		sprint(buf+n, " stat ");
-		fdirconv(buf+n+6, &d);
+		p = seprint(buf, e, "Rstat tag %ud ", tag);
+		if (f->stat == nil || f->nstat > sizeof tmp)
+			seprint(p, e, " stat(%d bytes)", f->nstat);
+		else {
+			d = (Dir * )tmp;
+			convM2D(f->stat, f->nstat, d, (byte * )(d + 1));
+			seprint(p, e, " stat ");
+			fdirconv(p + 6, e, d);
+		}
 		break;
-	case Twstat:	/* 78 */
-		convM2D(f->stat, &d);
-		n = sprint(buf, "Twstat tag %ud fid %d stat ", tag, fid);
-		fdirconv(buf+n, &d);
+	case Twstat:	/* 126 */
+		p = seprint(buf, e, "Twstat tag %ud fid %ud", tag, fid);
+		if (f->stat == nil || f->nstat > sizeof tmp)
+			seprint(p, e, " stat(%d bytes)", f->nstat);
+		else {
+			d = (Dir * )tmp;
+			convM2D(f->stat, f->nstat, d, (byte * )(d + 1));
+			seprint(p, e, " stat ");
+			fdirconv(p + 6, e, d);
+		}
 		break;
 	case Rwstat:
-		sprint(buf, "Rwstat tag %ud fid %d", tag, fid);
+		seprint(buf, e, "Rwstat tag %ud", tag);
 		break;
 	default:
-		sprint(buf,  "unknown type %d", type);
+		seprint(buf, e,  "unknown type %d", type);
 	}
-	strconv(p, buf);
-	free(buf);
-	return sizeof(Fcall*);
+	strconv(spec, buf);
+	return sizeof(Fcall * );
 }
+
 
 int
 dirconv(Printspec *p)
 {
 	byte buf[160];
 
-	fdirconv(buf, *(Dir**)p->o);
+	fdirconv(buf, buf + sizeof(buf), *(Dir * *)p->o);
 	strconv(p, buf);
-	return(sizeof(Dir*));
+	return(sizeof(Dir * ));
 }
 
-intern void
-fdirconv(byte *buf, Dir *d)
+
+intern
+void
+fdirconv(byte *buf, byte *e, Dir *d)
 {
-	sprint(buf, "'%s' '%s' '%s' q %#ux|%#ux m %#uo at %d mt %d l %d t %d d %d\n",
-			d->name, d->uid, d->gid,
-			d->qid.path, d->qid.vers, d->mode,
-			d->atime, d->mtime, d->length,
-			d->type, d->dev);
+	byte tmp[16];
+
+	seprint(buf, e, "'%s' '%s' '%s' '%s' q (0x%.8ux%.8ux %ud %s) m %#uo at %d mt %d l 0x%x%x t %d d %d",
+	    d->name, d->uid, d->gid, d->muid,
+	    d->qid.path[1], d->qid.path[0], d->qid.vers, qidtype(tmp, d->qid.type),
+	    d->mode, d->atime, d->mtime, d->length[1], d->length[0],
+	    d->type, d->dev);
 }
+
 
 /*
  * dump out count (or DUMPL, if count is bigger) bytes from
  * buf to ans, as a string if they are all printable,
  * else as a series of hex bytes
  */
-#define DUMPL 24
+#define DUMPL 64
 
-intern void
-dumpsome(byte *ans, byte *buf, int count)
+intern
+uint
+dumpsome(byte *ans, byte *e, byte *buf, int count)
 {
-	byte *p, c;
-	int i, printable;
+	int	i, printable;
+	byte * p;
 
-	printable = 1;
-	if(count > DUMPL)
-		count = DUMPL;
-	for(i=0; i<count && printable; i++) {
-		c = buf[i];
-		if((c < 32 && c !='\n' && c !='\t') || c > 127)
-			printable = 0;
+	if (buf == nil) {
+		seprint(ans, e, "<no data>");
+		return strlen(ans);
 	}
+	printable = 1;
+	if (count > DUMPL)
+		count = DUMPL;
+	for (i = 0; i < count && printable; i++)
+		if ((buf[i] != 0 && buf[i] < 32) || (byte)buf[i] > 127)
+			printable = 0;
 	p = ans;
 	*p++ = '\'';
-	if(printable){
-		memmove(p, buf, count);
-		p += count;
-	}else{
-		for(i=0; i<count; i++){
-			if(i>0 && i%4==0)
+	if (printable) {
+		if (2 * count > e - p - 2)
+			count = (e - p - 2) / 2;
+		for (i = 0; i < count; i++) {
+			if (buf[i] == 0) {
+				*p++ = '\\';
+				*p++ = '0';
+			} else if (buf[i] == '\t') {
+				*p++ = '\\';
+				*p++ = 't';
+			} else if (buf[i] == '\n') {
+				*p++ = '\\';
+				*p++ = 'n';
+			} else
+				*p++ = buf[i];
+		}
+	} else {
+		if (2 * count > e - p - 2)
+			count = (e - p - 2) / 2;
+		for (i = 0; i < count; i++) {
+			if (i > 0 && i % 4 == 0)
 				*p++ = ' ';
-			sprint(p, "%2.2ux", buf[i]);
+			sprint(p, "%2.2ux", (byte)buf[i]);
 			p += 2;
 		}
 	}
 	*p++ = '\'';
 	*p = 0;
+	check p < e;
+	return p - ans;
 }
+
+

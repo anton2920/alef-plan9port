@@ -1,208 +1,328 @@
 #include	<alef.h>
 #include	<fcall.h>
 
-#define	CHAR(x)		f->x = *p++
-#define	SHORT(x)	f->x = (p[0] | (p[1]<<8)); p += 2
-#define	LONG(x)		f->x = (p[0] | (p[1]<<8) |\
-				(p[2]<<16) | (p[3]<<24)); p += 4
-#define	VLONG(x)	f->x = (p[0] | (p[1]<<8) |\
-				(p[2]<<16) | (p[3]<<24)); p += 8
-#define	STRING(x,n)	memmove(f->x, p, n); p += n
-
-int
-convM2S(byte *ap, Fcall *f, int n)
+intern
+byte*
+gstring(byte *p, byte *ep, byte **s)
 {
-	byte *p;
+	uint n;
+
+	if (p + BIT16SZ > ep)
+		return nil;
+	n = GBIT16(p);
+	p += BIT16SZ - 1;
+	if (p + n + 1 > ep)
+		return nil;
+	/* move it down, on top of count, to make room for '\0' */
+	memmove(p, p + 1, n);
+	p[n] = '\0';
+	*s = (byte * )p;
+	p += n + 1;
+	return p;
+}
+
+
+intern
+byte*
+gqid(byte *p, byte *ep, Qid *q)
+{
+	if (p + QIDSZ > ep)
+		return nil;
+	q->type = GBIT8(p);
+	p += BIT8SZ;
+	q->vers = GBIT32(p);
+	p += BIT32SZ;
+	(q->path[1], q->path[0]) = GBIT64(p);
+	p += BIT64SZ;
+	return p;
+}
+
+
+/*
+ * no syntactic checks.
+ * three causes for error:
+ *  1. message size field is incorrect
+ *  2. input buffer too short for its own data (counts too long, etc.)
+ *  3. too many names or qids
+ * gqid() and gstring() return nil if they would reach beyond buffer.
+ * main switch statement checks range and also can fall through
+ * to test at end of routine.
+ */
+uint
+convM2S(byte *ap, uint nap, Fcall *f)
+{
+	byte * p, *ep;
+	uint i, size;
 
 	p = ap;
-	CHAR(type);
-	SHORT(tag);
-	switch(f->type)
-	{
+	ep = p + nap;
+
+	if (p + BIT32SZ + BIT8SZ + BIT16SZ > ep)
+		return 0;
+	size = GBIT32(p);
+	p += BIT32SZ;
+
+	if (size < BIT32SZ + BIT8SZ + BIT16SZ)
+		return 0;
+
+	f->type = GBIT8(p);
+	p += BIT8SZ;
+	f->tag = GBIT16(p);
+	p += BIT16SZ;
+
+	switch (f->type) {
 	default:
 		return 0;
 
-	case Tnop:
-	case Tosession:
-		break;
-
-	case Tsession:
-		STRING(chal, sizeof(f->chal));
+	case Tversion:
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->msize = GBIT32(p);
+		p += BIT32SZ;
+		p = gstring(p, ep, &f->version);
 		break;
 
 	case Tflush:
-		SHORT(oldtag);
-		break;
-
-	case Tattach:
-		SHORT(fid);
-		STRING(uname, sizeof(f->uname));
-		STRING(aname, sizeof(f->aname));
-		STRING(ticket, sizeof(f->ticket));
-		STRING(auth, sizeof(f->auth));
-		break;
-
-	case Toattach:
-		SHORT(fid);
-		STRING(uname, sizeof(f->uname));
-		STRING(aname, sizeof(f->aname));
-		STRING(ticket, NAMELEN);
+		if (p + BIT16SZ > ep)
+			return 0;
+		f->oldtag = GBIT16(p);
+		p += BIT16SZ;
 		break;
 
 	case Tauth:
-		SHORT(fid);
-		STRING(uname, sizeof(f->uname));
-		STRING(ticket, 8+NAMELEN);
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->afid = GBIT32(p);
+		p += BIT32SZ;
+		p = gstring(p, ep, &f->uname);
+		if (p == nil)
+			break;
+		p = gstring(p, ep, &f->aname);
+		if (p == nil)
+			break;
+		f->uidnum = NOUID;
 		break;
 
-	case Tclone:
-		SHORT(fid);
-		SHORT(newfid);
+	case Tattach:
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->afid = GBIT32(p);
+		p += BIT32SZ;
+		p = gstring(p, ep, &f->uname);
+		if (p == nil)
+			break;
+		p = gstring(p, ep, &f->aname);
+		if (p == nil)
+			break;
+		f->uidnum = NOUID;
 		break;
 
 	case Twalk:
-		SHORT(fid);
-		STRING(name, sizeof(f->name));
+		if (p + BIT32SZ + BIT32SZ + BIT16SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
+		f->newfid = GBIT32(p);
+		p += BIT32SZ;
+		f->nwname = GBIT16(p);
+		p += BIT16SZ;
+		if (f->nwname > MAXWELEM)
+			return 0;
+		for (i = 0; i < f->nwname; i++) {
+			p = gstring(p, ep, &f->wname[i]);
+			if (p == nil)
+				break;
+		}
 		break;
 
 	case Topen:
-		SHORT(fid);
-		CHAR(mode);
+	case Topenfd:
+		if (p + BIT32SZ + BIT8SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
+		f->mode = GBIT8(p);
+		p += BIT8SZ;
 		break;
 
 	case Tcreate:
-		SHORT(fid);
-		STRING(name, sizeof(f->name));
-		LONG(perm);
-		CHAR(mode);
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
+		p = gstring(p, ep, &f->name);
+		if (p == nil)
+			break;
+		if (p + BIT32SZ + BIT8SZ > ep)
+			return 0;
+		f->perm = GBIT32(p);
+		p += BIT32SZ;
+		f->mode = GBIT8(p);
+		p += BIT8SZ;
 		break;
 
 	case Tread:
-		SHORT(fid);
-		VLONG(offset);
-		SHORT(count);
+		if (p + BIT32SZ + BIT64SZ + BIT32SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
+		(f->offset[1], f->offset[0]) = GBIT64(p);
+		p += BIT64SZ;
+		f->count = GBIT32(p);
+		p += BIT32SZ;
 		break;
 
 	case Twrite:
-		SHORT(fid);
-		VLONG(offset);
-		SHORT(count);
-		p++;	/* pad(1) */
-		f->data = p; p += f->count;
+		if (p + BIT32SZ + BIT64SZ + BIT32SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
+		(f->offset[1], f->offset[0]) = GBIT64(p);
+		p += BIT64SZ;
+		f->count = GBIT32(p);
+		p += BIT32SZ;
+		if (p + f->count > ep)
+			return 0;
+		f->data = (byte * )p;
+		p += f->count;
 		break;
 
 	case Tclunk:
-		SHORT(fid);
-		break;
-
 	case Tremove:
-		SHORT(fid);
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
 		break;
 
 	case Tstat:
-		SHORT(fid);
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
 		break;
 
 	case Twstat:
-		SHORT(fid);
-		STRING(stat, sizeof(f->stat));
+		if (p + BIT32SZ + BIT16SZ > ep)
+			return 0;
+		f->fid = GBIT32(p);
+		p += BIT32SZ;
+		f->nstat = GBIT16(p);
+		p += BIT16SZ;
+		if (p + f->nstat > ep)
+			return 0;
+		f->stat = p;
+		p += f->nstat;
 		break;
 
-	case Tclwalk:
-		SHORT(fid);
-		SHORT(newfid);
-		STRING(name, sizeof(f->name));
-		break;
-/*
+		/*
  */
-	case Rnop:
-	case Rosession:
-		break;
-
-	case Rsession:
-		STRING(chal, sizeof(f->chal));
-		STRING(authid, sizeof(f->authid));
-		STRING(authdom, sizeof(f->authdom));
+	case Rversion:
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->msize = GBIT32(p);
+		p += BIT32SZ;
+		p = gstring(p, ep, &f->version);
 		break;
 
 	case Rerror:
-		STRING(ename, sizeof(f->ename));
+		p = gstring(p, ep, &f->ename);
+		f->errornum = 0;
 		break;
 
 	case Rflush:
 		break;
 
-	case Rattach:
-		SHORT(fid);
-		LONG(qid.path);
-		LONG(qid.vers);
-		STRING(rauth, sizeof(f->rauth));
-		break;
-
-	case Roattach:
-		SHORT(fid);
-		LONG(qid.path);
-		LONG(qid.vers);
-		break;
-
 	case Rauth:
-		SHORT(fid);
-		STRING(ticket, 8+8+7+7);
+		p = gqid(p, ep, &f->aqid);
+		if (p == nil)
+			break;
 		break;
 
-	case Rclone:
-		SHORT(fid);
+	case Rattach:
+		p = gqid(p, ep, &f->qid);
+		if (p == nil)
+			break;
 		break;
 
 	case Rwalk:
-	case Rclwalk:
-		SHORT(fid);
-		LONG(qid.path);
-		LONG(qid.vers);
+		if (p + BIT16SZ > ep)
+			return 0;
+		f->nwqid = GBIT16(p);
+		p += BIT16SZ;
+		if (f->nwqid > MAXWELEM)
+			return 0;
+		for (i = 0; i < f->nwqid; i++) {
+			p = gqid(p, ep, &f->wqid[i]);
+			if (p == nil)
+				break;
+		}
 		break;
 
 	case Ropen:
-		SHORT(fid);
-		LONG(qid.path);
-		LONG(qid.vers);
-		break;
-
+	case Ropenfd:
 	case Rcreate:
-		SHORT(fid);
-		LONG(qid.path);
-		LONG(qid.vers);
+		p = gqid(p, ep, &f->qid);
+		if (p == nil)
+			break;
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->iounit = GBIT32(p);
+		p += BIT32SZ;
+		if (f->type == Ropenfd) {
+			if (p + BIT32SZ > ep)
+				return 0;
+			f->unixfd = GBIT32(p);
+			p += BIT32SZ;
+		}
 		break;
 
 	case Rread:
-		SHORT(fid);
-		SHORT(count);
-		p++;	/* pad(1) */
-		f->data = p; p += f->count;
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->count = GBIT32(p);
+		p += BIT32SZ;
+		if (p + f->count > ep)
+			return 0;
+		f->data = (byte * )p;
+		p += f->count;
 		break;
 
 	case Rwrite:
-		SHORT(fid);
-		SHORT(count);
+		if (p + BIT32SZ > ep)
+			return 0;
+		f->count = GBIT32(p);
+		p += BIT32SZ;
 		break;
 
 	case Rclunk:
-		SHORT(fid);
-		break;
-
 	case Rremove:
-		SHORT(fid);
 		break;
 
 	case Rstat:
-		SHORT(fid);
-		STRING(stat, sizeof(f->stat));
+		if (p + BIT16SZ > ep)
+			return 0;
+		f->nstat = GBIT16(p);
+		p += BIT16SZ;
+		if (p + f->nstat > ep)
+			return 0;
+		f->stat = p;
+		p += f->nstat;
 		break;
 
 	case Rwstat:
-		SHORT(fid);
 		break;
 	}
-	if(ap+n == p)
-		return n;
+
+	if (p == nil || p > ep)
+		return 0;
+	if (ap + size == p)
+		return size;
 	return 0;
 }
+
+
