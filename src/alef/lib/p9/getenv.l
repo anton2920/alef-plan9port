@@ -1,23 +1,24 @@
 #include <alef.h>
 
+extern byte**	environ;
+
 byte*
 getenv(byte *name)
 {
-	int f, s;
-	byte *ans;
-	byte ename[200];
+	byte * env;
+	int	n;
+	int	i;
 
-	sprint(ename, "/env/%s", name);
-	f = open(ename, OREAD);
-	if(f < 0)
-		return nil;
-	s = seek(f, 0, 2);
-	ans = malloc(s+1);
-	if(ans) {
-		seek(f, 0, 0);
-		read(f, ans, s);
-		ans[s] = 0;
+	n = strlen(name);
+	for (i = 0; environ[i] != nil; ++i) {
+		env = environ[i];
+
+		if (memcmp(env, name, n) == 0) {
+			return & env[n] + 1;
+		}
 	}
-	close(f);
-	return ans;
+
+	return nil;
 }
+
+

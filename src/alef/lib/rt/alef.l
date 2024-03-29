@@ -18,6 +18,8 @@ intern int	CurrProc;
 
 intern Lock	glo; /* NOTE(anton2920): protects lock allocation for guarded sections. */
 
+byte**	environ;
+
 /*
  * Build argv/argc on shared memory stack.  Link the process stack into
  * shared memory and call main.
@@ -31,6 +33,7 @@ ALEF_init(int argc, byte **argv)
 	int i;
 	uint ssize, *rp;
 	byte *stack, *sp, *syserrstr;
+	byte **envp;
 
 	if(ALEFstack == 0)
 		ALEFstack = 16000;
@@ -46,6 +49,8 @@ ALEF_init(int argc, byte **argv)
 	for(i = 0; i < argc; i++)
 		ssize += strlen(argv[i]) + sizeof(byte*) + 1;
 	ssize += sizeof(byte*);
+
+	environ = argv + argc + 1;
 
 	/*
 	 * Link to stack in shared memory
