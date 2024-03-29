@@ -147,6 +147,13 @@ kill(int pid, int sig)
 
 
 int
+lseek(int filedes, uint offset_lo, uint offset_hi, int whence)
+{
+	return syscall6(SYS_lseek, filedes, offset_lo, offset_hi, whence, 0, 0);
+}
+
+
+int
 lstat(byte *path, Stat *sb)
 {
 	return syscall(SYS_freebsd11_lstat, (int)path, (int)sb, 0);
@@ -203,13 +210,6 @@ int
 sched_yield()
 {
 	return syscall(SYS_yield, 0, 0, 0);
-}
-
-
-int
-seek(int filedes, uint offset, int whence)
-{
-	return syscall6(SYS_lseek, filedes, offset, 0, whence, 0, 0);
 }
 
 

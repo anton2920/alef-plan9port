@@ -543,6 +543,7 @@ int	getdirentries(int, byte*, uint, byte*);
 int	getrusage(int, Rusage*);
 int	ioctl(int, uint, ...);
 int	kill(int, int);
+int	lseek(int, uint, uint, int);
 int	lstat(byte*, Stat*);
 int	mkdir(byte*, usint);
 void*	mmap(void*, uint, int, int, int, int);

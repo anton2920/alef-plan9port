@@ -282,6 +282,13 @@ open(byte *name, int mode)
 
 
 int
+seek(int fd, uint offset, int whence)
+{
+	return lseek(fd, offset, 0, whence);
+}
+
+
+int
 close(int fd)
 {
 	dirdel(fd);
