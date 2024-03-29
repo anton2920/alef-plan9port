@@ -439,7 +439,6 @@ int	decrypt(void*, void*, int);
 byte*	asctime(Tm*);
 Tm*	gmtime(int);
 Tm*	localtime(int);
-uint	mstime();
 int	time(int*);
 /*
  *	Miscellaneous Plan 9 functions
