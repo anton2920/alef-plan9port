@@ -126,6 +126,15 @@ getpid()
 
 
 int
+getppid()
+{
+	int	r1;
+	(r1, nil, nil) = RawSyscall(SYS_getppid, 0, 0, 0);
+	return r1;
+}
+
+
+int
 getrusage(int who, Rusage *rusage)
 {
 	return syscall(SYS_getrusage, who, (int)rusage, 0);
