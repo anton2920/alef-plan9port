@@ -33,7 +33,6 @@ ALEF_init(int argc, byte **argv)
 	int i;
 	uint ssize, *rp;
 	byte *stack, *sp, *syserrstr;
-	byte **envp;
 
 	if(ALEFstack == 0)
 		ALEFstack = 16000;
