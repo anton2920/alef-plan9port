@@ -5,6 +5,7 @@
 /* From <fcntl.h>. */
 #define	O_CREAT		0x0200		/* create if nonexistent */
 
+
 (int, int, int)
 RawSyscall(int, int, int, int);
 (int, int, int)
@@ -163,13 +164,6 @@ lseek(int filedes, uint offset_lo, uint offset_hi, int whence)
 
 
 int
-lstat(byte *path, Stat *sb)
-{
-	return syscall(SYS_freebsd11_lstat, (int)path, (int)sb, 0);
-}
-
-
-int
 mkdir(byte *path, usint mode)
 {
 	return syscall(SYS_mkdir, (int)path, mode, 0);
@@ -219,13 +213,6 @@ int
 sched_yield()
 {
 	return syscall(SYS_yield, 0, 0, 0);
-}
-
-
-int
-stat(byte *path, Stat *sb)
-{
-	return syscall(SYS_freebsd11_stat, (int)path, (int)sb, 0);
 }
 
 

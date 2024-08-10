@@ -129,7 +129,8 @@ _p9dir(Stat *lst, Stat *st, byte *name, Dir *d, byte **str, byte *estr)
 			(d->length[1], d->length[0]) = (0, 0);
 			d->mode |= DMDIR;
 			d->qid.type = QTDIR;
-		} else if (S_ISFIFO(st->mode))
+		}
+		else if (S_ISFIFO(st->mode))
 			d->mode |= DMNAMEDPIPE;
 		else if (S_ISSOCK(st->mode))
 			d->mode |= DMSOCKET;

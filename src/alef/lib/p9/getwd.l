@@ -46,7 +46,7 @@ getwd(byte *s , int size)
 		}
 		db[depth] = p;
 
-		DBG(print("stat: %s %lux\n", p->name, p->qid); )
+		DBG(print("stat: %s 0x%x%x (%d, %d), %d\n", p->name, p->qid.path[1], p->qid.path[0], p->qid.path[1], p->qid.path[0], p->qid.vers); )
 
 		if (samefile(p, root)) {
 			depth--;
@@ -160,6 +160,8 @@ samefile(Dir *a, Dir *b)
 	if (a->type != b->type)
 		return 0;
 	if (a->dev != b->dev)
+		return 0;
+	if (a->qid.vers != b->qid.vers)
 		return 0;
 	if ((a->qid.path[1] != b->qid.path[1]) || (a->qid.path[0] != b->qid.path[0]))
 		return 0;

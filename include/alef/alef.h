@@ -543,14 +543,15 @@ int	getrusage(int, Rusage*);
 int	ioctl(int, uint, ...);
 int	kill(int, int);
 int	lseek(int, uint, uint, int);
-int	lstat(byte*, Stat*);
 int	mkdir(byte*, usint);
 void*	mmap(void*, uint, int, int, int, int);
 int	nanosleep(Timespec*, Timespec*);
 int	rmdir(byte*);
 int	sched_yield();
-int	stat(byte*, Stat*);
 int	syscall(int, int, int, int);
 int	syscall6(int, int, int, int, int, int, int);
 int	syscall9(int, int, int, int, int, int, int, int, int, int);
 int	unlink(byte*);
+
+int	lstat(byte*, Stat*);
+int	stat(byte*, Stat*);
