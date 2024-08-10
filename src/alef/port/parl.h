@@ -75,6 +75,7 @@ struct Node
 		long	pc;
 		long	ival;
 		float	fval;
+		vlong lival;
 		Node*	proto;
 	};
 };
@@ -264,6 +265,7 @@ enum
 	OITER,
 	OXEROX,
 	OVASGN,
+	OREGPAIR,
 	Nrops,
 };
 

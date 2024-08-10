@@ -25,6 +25,8 @@ nopconv[Ntype] =
 	0,			/* TFUNC */
 	0,			/* TVOID */
 	MADT,			/* TADT */
+	MLINT|MLUINT,	/* TLINT */
+	MLINT|MLUINT,	/* TLUINT */
 };
 
 Inst*

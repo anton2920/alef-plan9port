@@ -77,6 +77,11 @@ load(Node *from, Node *to)
 	case TFLOAT:
 		instruction(oload[op], from, to);
 		break;
+	case TLINT:
+	case TLUINT:
+		/* TODO(anton2920): verify that it works. */
+
+		break;
 	default:
 		reg(&n1, from->t, to);
 		instruction(oload[op], from, &n1);
@@ -103,6 +108,11 @@ store(Node *from, Node *to)
 		tmp = stknode(builtype[TINT]);
 		instruction(AFMOVLP, from, tmp);
 		assign(tmp, to);
+		break;
+	case TLINT:
+	case TLUINT:
+		/* TODO(anton2920): verify that it works. */
+
 		break;
 	default:
 		if(vconst(from) == 0) {
@@ -1184,6 +1194,7 @@ evalarg(Node *n, int pass)
 		compute:
 			switch(n->t->type) {
 			default:
+				__asm__ __volatile__ ("int3");
 				fatal("evalarg %T",  n->t);
 			case TADT:
 			case TUNION:
@@ -1199,6 +1210,8 @@ evalarg(Node *n, int pass)
 			case TIND:
 			case TFLOAT:
 			case TCHANNEL:
+			case TLINT:
+			case TLUINT:
 				n1.type = OASGN;
 				n1.left = tmp;
 				n1.right = n;

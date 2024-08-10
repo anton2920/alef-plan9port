@@ -46,6 +46,7 @@ reg(Node *n, Type *t, Node *use)
 
 	switch(t->type) {
 	default:
+		__asm__ __volatile__ ("int3");
 		fatal("reg: bad type %T", t);
 
 	case TINT:
@@ -121,7 +122,7 @@ regtmp(void)
 		}
 	}
 	fatal("No int registers");
-	return ZeroN;	
+	return ZeroN;
 }
 
 void
@@ -140,7 +141,7 @@ regsave(int nr)
 
 	ref = regmap[nr];
 	regmap[nr] = 0;
-	
+
 	return ref;
 }
 
@@ -395,7 +396,7 @@ rpush(int rn)
 	if(atv) {
 		n = stknode(builtype[TINT]);
 		assign(regn(rn), n);
-		return n;	
+		return n;
 	}
 	instruction(APUSHL, regn(rn), ZeroN);
 	return ZeroN;
