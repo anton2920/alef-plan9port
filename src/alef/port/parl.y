@@ -56,7 +56,7 @@
 %token <fval>	Tfconst
 %token <string>	Tstring
 
-%token Tint Tuint Tsint Tsuint Tuchar Tchar Tfloat Tchannel Tvoid Tcase Tcheck
+%token Tint Tuint Tsint Tsuint Tuchar Tchar Tfloat Tchannel Tvoid Tlint Tluint Tcase Tcheck
 %token Tbreak Taggregate Tunion Tstorage Treturn Tswitch Twhile Tfor Tpar Telse
 %token Tandand Tdo Tcomm Toror Tneq Teq Tadt Ttask Tprocess Tselect Tif Traise
 %token Tleq Tgeq Tindir Tlsh Trsh Tset Tsname Trescue Tintern Textern Tdefault
@@ -1105,6 +1105,8 @@ xtname		: Tint		{ $$ = at(TINT, 0); }
 			if($5 != nil)
 				chani($$, $5);
 		}
+		| Tlint	{ $$ = at(TLINT, 0); }
+		| Tluint	{ $$ = at(TLUINT, 0); }
 		;
 
 bufdim		:

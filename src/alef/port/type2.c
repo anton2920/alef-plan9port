@@ -31,6 +31,8 @@ struct tyconst
 	TVOID,		0,	   0,		   0,		0,
 	TADT,		0,	   Align_Machint,  "rcvmem",	"sndmem",
 	TPOLY,		2*Machint, Align_Machint,  "rcvmem",	"sndmem",
+	TLINT,		2*Machint, 2*Align_Machint,  "rcvmem",	"sndmem",
+	TLUINT,		2*Machint, 2*Align_Machint,  "rcvmem",	"sndmem",
 };
 
 char *_typestr[] =
@@ -51,6 +53,8 @@ char *_typestr[] =
 	[TVOID]		"VOID",
 	[TADT]		"ADT",
 	[TPOLY]		"POLY",
+	[TLINT]		"LINT",
+	[TLUINT]		"ULINT",
 };
 
 int

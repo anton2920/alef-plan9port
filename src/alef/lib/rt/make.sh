@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 PROJECT=libA
 
 VERBOSITY=0
