@@ -15,6 +15,7 @@ enum
 	Machchar 		= 1,
 	Machchan 		= 4,
 	Machfloat 		= 8,
+	Machlint		= 8,
 
 	Autobase		= 4,	/* Automatics start at Autobase(FP) */
 	Parambase		= 0,	/* Parameters start at Parambase(SP) */
@@ -30,6 +31,7 @@ enum
 	Align_Machchar 		= 1,
 	Align_Machchan 		= 4,
 	Align_Machfloat 	= 4,
+	Align_Machlint		= 8,
 	Align_data 		= Align_Machint,
 
 	Sucall			= 100,	/* Complexity of a function */
