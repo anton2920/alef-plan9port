@@ -527,11 +527,24 @@ aggr Rusage
 	int	nivcsw;	/* involuntary " */
 };
 
+/* From <sys/socket.h>. */
+aggr Sockaddr
+{
+	byte	len;
+	byte	family;
+	byte	data[20];
+};
+
+int	_accept(int, Sockaddr*, uint*);
+int	_bind(int, Sockaddr*, uint);
+int	_dup(int);
 void	_exit(int);
 int	_close(int);
+int	_listen(int, int);
 int	_open(byte*, int, usint);
 int	_umtx_op(void*, int, int, void*, void*);
 int	clock_gettime(int, Timespec*);
+int	connect(int, Sockaddr*, uint);
 int	fchmod(int, usint);
 int	fcntl(int, int, ...);
 int	fstat(int, Stat*);
@@ -540,6 +553,7 @@ int	ftruncate(int, int);
 int	futimes(int, Timeval*);
 int	getdirentries(int, byte*, uint, byte*);
 int	getrusage(int, Rusage*);
+int	getsockopt(int, int, int, void*, uint*);
 int	ioctl(int, uint, ...);
 int	kill(int, int);
 int	lseek(int, uint, uint, int);
@@ -548,6 +562,8 @@ void*	mmap(void*, uint, int, int, int, int);
 int	nanosleep(Timespec*, Timespec*);
 int	rmdir(byte*);
 int	sched_yield();
+int	setsockopt(int, int, int, void*, uint);
+int	socket(int, int, int);
 int	syscall(int, int, int, int);
 int	syscall6(int, int, int, int, int, int, int);
 int	syscall9(int, int, int, int, int, int, int, int, int, int);
@@ -555,3 +571,4 @@ int	unlink(byte*);
 
 int	lstat(byte*, Stat*);
 int	stat(byte*, Stat*);
+byte*	strerror(int);
