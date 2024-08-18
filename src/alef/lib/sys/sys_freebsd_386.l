@@ -155,18 +155,14 @@ getdirentries(int fd, byte *buf, uint nbytes, byte *basep)
 int
 getpid()
 {
-	int	r1;
-	(r1, nil, nil) = RawSyscall(SYS_getpid, 0, 0, 0);
-	return r1;
+	return syscall(SYS_getpid, 0, 0, 0);
 }
 
 
 int
 getppid()
 {
-	int	r1;
-	(r1, nil, nil) = RawSyscall(SYS_getppid, 0, 0, 0);
-	return r1;
+	return syscall(SYS_getppid, 0, 0, 0);
 }
 
 
