@@ -27,9 +27,30 @@ void error(int errno)
 
 
 int
+_accept(int s, Sockaddr *addr, uint *addrlen)
+{
+	return syscall(SYS_accept, s, (int)addr, (int)addrlen);
+}
+
+
+int
+_bind(int s, Sockaddr *addr, uint addrlen)
+{
+	return syscall(SYS_bind, s, (int)addr, addrlen);
+}
+
+
+int
 _close(int fd)
 {
 	return syscall(SYS_close, fd, 0, 0);
+}
+
+
+int
+_dup(int fd)
+{
+	return syscall(SYS_dup, fd, 0, 0);
 }
 
 
@@ -37,6 +58,13 @@ void
 _exit(int code)
 {
 	syscall(SYS_exit, code, 0, 0);
+}
+
+
+int
+_listen(int s, int backlog)
+{
+	return syscall(SYS_listen, s, backlog, 0);
 }
 
 
@@ -65,6 +93,13 @@ int
 clock_gettime(int clock_id, Timespec *tp)
 {
 	return syscall(SYS_clock_gettime, clock_id, (int)tp, 0);
+}
+
+
+int
+connect(int s, Sockaddr *addr, uint addrlen)
+{
+	return syscall(SYS_connect, s, (int)addr, addrlen);
 }
 
 
@@ -143,6 +178,13 @@ getrusage(int who, Rusage *rusage)
 
 
 int
+getsockopt(int s, int level, int optname, void *optval, uint *optlen)
+{
+	return syscall6(SYS_getsockopt, s, level, optname, (int)optval, (int)optlen, 0);
+}
+
+
+int
 ioctl(int fd, uint request, ...)
 {
 	return syscall(SYS_ioctl, fd, request, (int)...);
@@ -213,6 +255,20 @@ int
 sched_yield()
 {
 	return syscall(SYS_yield, 0, 0, 0);
+}
+
+
+int
+setsockopt(int s, int level, int optname, void *optval, uint optlen)
+{
+	return syscall6(SYS_setsockopt, s, level, optname, (int)optval, optlen, 0);
+}
+
+
+int
+socket(int domain, int type, int protocol)
+{
+	return syscall(SYS_socket, domain, type, protocol);
 }
 
 

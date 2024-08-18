@@ -167,8 +167,7 @@ announce(byte *addr, byte *dir)
 	if ((s = socket(ss.family, proto, 0)) < 0)
 		return - 1;
 	sn = sizeof n;
-	if (port && getsockopt(s, SOL_SOCKET, SO_TYPE, (void * ) & n, &sn) >= 0
-	     && n == SOCK_STREAM) {
+	if (port && getsockopt(s, SOL_SOCKET, SO_TYPE, (void * ) & n, &sn) >= 0 && n == SOCK_STREAM) {
 		n = 1;
 		setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (byte * ) & n, sizeof n);
 	}

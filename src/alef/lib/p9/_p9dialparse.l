@@ -1,18 +1,75 @@
 #include <alef.h>
 
+#define nelem(arr) (sizeof(arr)/sizeof((arr)[0]))
+
+
+/* From <sys/socket.h>. */
+aggr sockaddr
+{
+	byte	len;		/* total length */
+	byte	family;	/* address family */
+	byte	data[14];	/* actually longer; address value */
+};
+
+
+/* From <netdb.h>. */
+/*
+ * Structures returned by network data base library.  All addresses are
+ * supplied in host order, and returned in network order (suitable for
+ * use in system calls).
+ */
+aggr hostent
+{
+	byte	 * name;	/* official name of host */
+	byte	 * *aliases;	/* alias list */
+	int	addrtype;	/* host address type */
+	int	length;	/* length of address */
+	byte	 * *addr_list;	/* list of addresses from name server */
+};
+
+
+aggr servent
+{
+	byte	 * name;	/* official service name */
+	byte	 * *aliases;	/* alias list */
+	int	port;		/* port # */
+	byte	 * proto;	/* protocol to use */
+};
+
+
+aggr addrinfo
+{
+	int	flags;	/* AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST */
+	int	family;	/* AF_xxx */
+	int	socktype;	/* SOCK_xxx */
+	int	protocol;	/* 0 or IPPROTO_xxx for IPv4 and IPv6 */
+	uint addrlen;	/* length of ai_addr */
+	byte	 * canonname;	/* canonical name for hostname */
+	sockaddr * addr;	/* binary address */
+	addrinfo * next;	/* next structure in linked list */
+};
+
+
 /* From <netinet/in.h>. */
+aggr in_addr
+{
+	uint addr;
+};
+
+
 aggr sockaddr_in
 {
 	byte	len;
 	byte	family;
 	usint	port;
-	uint	addr;
+	in_addr	addr;
 	byte	zero[8];
 };
 
 
 /* From <netinet6/in6.h>. */
-aggr in6_addr {
+aggr in6_addr
+{
 	union {
 		byte		__u6_addr8[16];
 		usint	__u6_addr16[8];
@@ -21,7 +78,8 @@ aggr in6_addr {
 };
 
 
-aggr sockaddr_in6 {
+aggr sockaddr_in6
+{
 	byte	len;	/* length of this struct */
 	byte	family;	/* AF_INET6 */
 	usint	port;	/* Transport layer port # */
@@ -49,6 +107,7 @@ aggr sockaddr_storage
 
 
 /* From <sys/socket.h>. */
+#define	AF_UNIX		1		/* standardized name for AF_LOCAL */
 #define	AF_INET		2		/* internetwork: UDP, TCP, etc. */
 #define	AF_INET6		28		/* IPv6 */
 
@@ -71,7 +130,8 @@ intern byte	*nets[] = {
 
 #define CLASS(p) ((*(ubyte*)(p))>>6)
 
-aggr NetTable {
+aggr NetTable
+{
 	byte	 * net;
 	byte	 * service;
 	int	port;
@@ -93,6 +153,45 @@ intern NetTable porttbl[] = {
 	{ "udp", 	"dns", 	53 },
 	{ "tcp", 	"dns", 	53 },
 };
+
+
+intern usint
+htons(usint port)
+{
+	return ((port & 0xFF) << 8) | ((port & 0xFF00) >> 8);
+}
+
+
+intern usint
+ntohs(usint port)
+{
+	return htons(port);
+}
+
+
+intern hostent *
+gethostbyname(byte *)
+{
+	werrstr("not implemented");
+	return nil;
+}
+
+
+intern servent *
+getservbyname(byte *, byte *)
+{
+	werrstr("not implemented");
+	return nil;
+}
+
+
+intern int
+getaddrinfo(byte *, byte *, addrinfo *, addrinfo **res)
+{
+	werrstr("not implemented");
+	*res = nil;
+	return - 1;
+}
 
 
 intern int
@@ -172,23 +271,23 @@ Unix:
 
 	/* translate host */
 	if (strcmp(host, "*") == 0) {
-		ss->ss_family = AF_INET6;
-		((sockaddr_in6 * )ss)->addr = in6addr_any;
+		ss->family = AF_INET6;
+		memset(&((sockaddr_in6 * )ss)->addr, 0, sizeof(((sockaddr_in6 * )ss)->addr));
 	} else if ((he = gethostbyname(host)) != nil && he->addr_list[0] != nil) {
-		ss->ss_family = he->addrtype;
+		ss->family = he->addrtype;
 		switch (ss->family) {
 		case AF_INET:
-			((sockaddr_in * )ss)->sin_addr = *(in_addr * ) * (he->addr_list);
+			((sockaddr_in * )ss)->addr = *(in_addr * ) * (he->addr_list);
 			break;
 		case AF_INET6:
-			((sockaddr_in6 * )ss)->sin6_addr = *(in6_addr * ) * (he->addr_list);
+			((sockaddr_in6 * )ss)->addr = *(in6_addr * ) * (he->addr_list);
 			break;
 		default:
 			errstr("unknown protocol family %d", ss->family);
 			return - 1;
 		}
-	} else if (getaddrinfo(host, NULL, NULL, &result) == 0) {
-		switch (result->ai_family) {
+	} else if (getaddrinfo(host, nil, nil, &result) == 0) {
+		switch (result->family) {
 		case AF_INET:
 			memmove((sockaddr_in * )ss, result->addr, result->addrlen);
 			break;
@@ -235,7 +334,7 @@ Unix:
 	}
 
 	*pnet = net;
-	i = strtol(port, &e, 0);
+	i = strtoi(port, &e, 0);
 	if (*e == 0) {
 		*pport = i;
 		return setport(ss, *pport);
