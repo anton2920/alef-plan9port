@@ -3,15 +3,6 @@
 #define nelem(arr) (sizeof(arr)/sizeof((arr)[0]))
 
 
-/* From <sys/socket.h>. */
-aggr sockaddr
-{
-	byte	len;		/* total length */
-	byte	family;	/* address family */
-	byte	data[14];	/* actually longer; address value */
-};
-
-
 /* From <netdb.h>. */
 /*
  * Structures returned by network data base library.  All addresses are
@@ -45,25 +36,8 @@ aggr addrinfo
 	int	protocol;	/* 0 or IPPROTO_xxx for IPv4 and IPv6 */
 	uint addrlen;	/* length of ai_addr */
 	byte	 * canonname;	/* canonical name for hostname */
-	sockaddr * addr;	/* binary address */
+	Sockaddr * addr;	/* binary address */
 	addrinfo * next;	/* next structure in linked list */
-};
-
-
-/* From <netinet/in.h>. */
-aggr in_addr
-{
-	uint addr;
-};
-
-
-aggr sockaddr_in
-{
-	byte	len;
-	byte	family;
-	usint	port;
-	in_addr	addr;
-	byte	zero[8];
 };
 
 
@@ -78,7 +52,7 @@ aggr in6_addr
 };
 
 
-aggr sockaddr_in6
+aggr SockaddrIn6
 {
 	byte	len;	/* length of this struct */
 	byte	family;	/* AF_INET6 */
@@ -89,14 +63,14 @@ aggr sockaddr_in6
 };
 
 
-/* From <sys/_sockaddr_storage.h>. */
+/* From <sys/_Sockaddr_storage.h>. */
 #define	_SS_MAXSIZE	128
 #define	_SS_ALIGNSIZE	(2*sizeof(int))
 #define	_SS_PAD1SIZE	(_SS_ALIGNSIZE - sizeof(byte) - sizeof(byte))
 #define	_SS_PAD2SIZE	(_SS_MAXSIZE - sizeof(byte) - sizeof(byte) - _SS_PAD1SIZE - _SS_ALIGNSIZE)
 
 
-aggr sockaddr_storage
+aggr Sockaddr_storage
 {
 	byte	len;		/* address length */
 	byte	family;	/* address family */
@@ -116,9 +90,9 @@ aggr sockaddr_storage
 #define	SUNPATHLEN	104
 
 
-aggr sockaddr_un
+aggr Sockaddr_un
 {
-	byte	len;	/* sockaddr len including null */
+	byte	len;	/* Sockaddr len including null */
 	byte	family;	/* AF_UNIX */
 	byte	path[SUNPATHLEN];	/* path name (gag) */
 };
@@ -195,14 +169,14 @@ getaddrinfo(byte *, byte *, addrinfo *, addrinfo **res)
 
 
 intern int
-setport(sockaddr_storage *ss, int port)
+setport(Sockaddr_storage *ss, int port)
 {
 	switch (ss->family) {
 	case AF_INET:
-		((sockaddr_in * )ss)->port = htons(port);
+		((SockaddrIn * )ss)->port = htons(port);
 		break;
 	case AF_INET6:
-		((sockaddr_in6 * )ss)->port = htons(port);
+		((SockaddrIn6 * )ss)->port = htons(port);
 		break;
 	default:
 		errstr("unknown protocol family %d", ss->family);
@@ -219,7 +193,7 @@ p9dialparse(byte *addr, byte **pnet, byte **punix, void *phost, int *pport)
 	int	i;
 	servent * se;
 	hostent * he;
-	sockaddr_storage * ss;
+	Sockaddr_storage * ss;
 	addrinfo * result;
 
 	ss = phost;
@@ -236,14 +210,14 @@ p9dialparse(byte *addr, byte **pnet, byte **punix, void *phost, int *pport)
 	if ((port = strchr(host, '!')) == nil) {
 		if (strcmp(net, "unix") == 0 || strcmp(net, "net") == 0) {
 Unix:
-			if (strlen(host) + 1 > sizeof ((sockaddr_un * )ss)->path) {
+			if (strlen(host) + 1 > sizeof ((Sockaddr_un * )ss)->path) {
 				werrstr("unix socket name too long");
 				return - 1;
 			}
 			*punix = host;
 			*pnet = "unix";
 			ss->family = AF_UNIX;
-			strcpy(((sockaddr_un * )ss)->path, host);
+			strcpy(((Sockaddr_un * )ss)->path, host);
 			*pport = 0;
 			return 0;
 		}
@@ -272,15 +246,15 @@ Unix:
 	/* translate host */
 	if (strcmp(host, "*") == 0) {
 		ss->family = AF_INET6;
-		memset(&((sockaddr_in6 * )ss)->addr, 0, sizeof(((sockaddr_in6 * )ss)->addr));
+		memset(&((SockaddrIn6 * )ss)->addr, 0, sizeof(((SockaddrIn6 * )ss)->addr));
 	} else if ((he = gethostbyname(host)) != nil && he->addr_list[0] != nil) {
 		ss->family = he->addrtype;
 		switch (ss->family) {
 		case AF_INET:
-			((sockaddr_in * )ss)->addr = *(in_addr * ) * (he->addr_list);
+			((SockaddrIn * )ss)->addr = *(uint * ) * (he->addr_list);
 			break;
 		case AF_INET6:
-			((sockaddr_in6 * )ss)->addr = *(in6_addr * ) * (he->addr_list);
+			((SockaddrIn6 * )ss)->addr = *(in6_addr * ) * (he->addr_list);
 			break;
 		default:
 			errstr("unknown protocol family %d", ss->family);
@@ -289,10 +263,10 @@ Unix:
 	} else if (getaddrinfo(host, nil, nil, &result) == 0) {
 		switch (result->family) {
 		case AF_INET:
-			memmove((sockaddr_in * )ss, result->addr, result->addrlen);
+			memmove((SockaddrIn * )ss, result->addr, result->addrlen);
 			break;
 		case AF_INET6:
-			memmove((sockaddr_in6 * )ss, result->addr, result->addrlen);
+			memmove((SockaddrIn6 * )ss, result->addr, result->addrlen);
 			break;
 		default:
 			errstr("unknown protocol family %d", ss->family);

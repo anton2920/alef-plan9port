@@ -1,19 +1,5 @@
 #include <alef.h>
 
-/* From <netinet/in.h>. */
-#define	INADDR_ANY		0
-#define	IPPROTO_TCP		6		/* tcp */
-
-aggr sockaddr_in
-{
-	byte	len;
-	byte	family;
-	usint	port;
-	uint	addr;
-	byte	zero[8];
-};
-
-
 /* From <netinet/tcp.h>. */
 #define	TCP_NODELAY	1	/* don't delay send to coalesce packets */
 
@@ -28,7 +14,7 @@ aggr in6_addr {
 };
 
 
-aggr sockaddr_in6 {
+aggr SockaddrIn6 {
 	byte	len;	/* length of this struct */
 	byte	family;	/* AF_INET6 */
 	usint	port;	/* Transport layer port # */
@@ -38,14 +24,14 @@ aggr sockaddr_in6 {
 };
 
 
-/* From <sys/_sockaddr_storage.h>. */
+/* From <sys/_Sockaddr_storage.h>. */
 #define	_SS_MAXSIZE	128
 #define	_SS_ALIGNSIZE	(2*sizeof(int))
 #define	_SS_PAD1SIZE	(_SS_ALIGNSIZE - sizeof(byte) - sizeof(byte))
 #define	_SS_PAD2SIZE	(_SS_MAXSIZE - sizeof(byte) - sizeof(byte) - _SS_PAD1SIZE - _SS_ALIGNSIZE)
 
 
-aggr sockaddr_storage
+aggr Sockaddr_storage
 {
 	byte	len;		/* address length */
 	byte	family;	/* address family */
@@ -55,36 +41,13 @@ aggr sockaddr_storage
 };
 
 
-/* From <sys/socket.h>. */
-#define	AF_UNIX		1		/* standardized name for AF_LOCAL */
-#define	AF_INET		2		/* internetwork: UDP, TCP, etc. */
-#define	AF_INET6		28		/* IPv6 */
-
-#define	SOCK_STREAM	1		/* stream socket */
-#define	SOCK_DGRAM	2		/* datagram socket */
-#define	SOCK_RAW	3		/* raw-protocol interface */
-
-#define	SOL_SOCKET		0xffff		/* options for socket level */
-#define	SO_REUSEADDR	0x00000004	/* allow local address reuse */
-#define	SO_BROADCAST	0x00000020	/* permit sending of broadcast msgs */
-#define	SO_TYPE			0x1008		/* get socket type */
-
-
-aggr sockaddr
-{
-	byte	len;		/* total length */
-	byte	family;	/* address family */
-	byte	data[14];	/* actually longer; address value */
-};
-
-
 /* From <sys/un.h>. */
 #define	SUNPATHLEN	104
 
 
-aggr sockaddr_un
+aggr Sockaddr_un
 {
-	byte	len;	/* sockaddr len including null */
+	byte	len;	/* Sockaddr len including null */
 	byte	family;	/* AF_UNIX */
 	byte	path[SUNPATHLEN];	/* path name (gag) */
 };
@@ -99,31 +62,31 @@ p9dialparse(byte *addr, byte **pnet, byte **punix, void *phost, int *pport);
 
 
 intern int
-isany(sockaddr_storage *ss)
+isany(Sockaddr_storage *ss)
 {
 	in6_addr zaddr;
 
 	switch (ss->family) {
 	case AF_INET:
-		return (((sockaddr_in * )ss)->addr == INADDR_ANY);
+		return (((SockaddrIn * )ss)->addr == INADDR_ANY);
 	case AF_INET6:
 		memset(&zaddr, 0, sizeof zaddr);
-		return (memcmp(&((sockaddr_in6 * )ss)->addr, &zaddr, sizeof (in6_addr)) == 0);
+		return (memcmp(&((SockaddrIn6 * )ss)->addr, &zaddr, sizeof (in6_addr)) == 0);
 	}
 	return 0;
 }
 
 
 intern int
-addrlen(sockaddr_storage *ss)
+addrlen(Sockaddr_storage *ss)
 {
 	switch (ss->family) {
 	case AF_INET:
-		return sizeof(sockaddr_in);
+		return sizeof(SockaddrIn);
 	case AF_INET6:
-		return sizeof(sockaddr_in6);
+		return sizeof(SockaddrIn6);
 	case AF_UNIX:
-		return sizeof(sockaddr_un);
+		return sizeof(Sockaddr_un);
 	}
 	return 0;
 }
@@ -138,7 +101,7 @@ dial(byte *addr, byte *local, byte *dir, int *cfdp)
 	int	proto;
 	uint sn;
 	int	n;
-	sockaddr_storage ss, ssl;
+	Sockaddr_storage ss, ssl;
 	int	s;
 
 	if (dir || cfdp) {
@@ -197,7 +160,7 @@ badlocal:
 			n = 1;
 			setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (byte * ) & n, sizeof n);
 		}
-		if (_bind(s, (sockaddr * ) & ssl, addrlen(&ssl)) < 0)
+		if (_bind(s, (Sockaddr * ) & ssl, addrlen(&ssl)) < 0)
 			goto badlocal;
 		free(buf);
 	}
@@ -205,7 +168,7 @@ badlocal:
 	n = 1;
 	setsockopt(s, SOL_SOCKET, SO_BROADCAST, &n, sizeof n);
 	if (!isany(&ss)) {
-		if (connect(s, (sockaddr * ) & ss, addrlen(&ss)) < 0) {
+		if (connect(s, (Sockaddr * ) & ss, addrlen(&ss)) < 0) {
 			close(s);
 			return - 1;
 		}
@@ -233,8 +196,8 @@ Unix:
 		werrstr("socket: %r");
 		return - 1;
 	}
-	if (connect(s, (sockaddr * ) & ss, addrlen(&ss)) < 0) {
-		werrstr("connect %s: %r", ((sockaddr_un * ) & ss)->path);
+	if (connect(s, (Sockaddr * ) & ss, addrlen(&ss)) < 0) {
+		werrstr("connect %s: %r", ((Sockaddr_un * ) & ss)->path);
 		close(s);
 		return - 1;
 	}

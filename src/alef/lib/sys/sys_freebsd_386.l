@@ -188,6 +188,20 @@ ioctl(int fd, uint request, ...)
 
 
 int
+kevent(int kq, Kevent *changelist, int nchanges, Kevent *eventlist, int nevents, Timespec *timeout)
+{
+	return syscall6(SYS_kevent, kq, (int)changelist, nchanges, (int)eventlist, nevents, (int)timeout);
+}
+
+
+int
+kqueue()
+{
+	return syscall(SYS_kqueue, 0, 0, 0);
+}
+
+
+int
 kill(int pid, int sig)
 {
 	return syscall(SYS_kill, pid, sig, 0);
@@ -251,6 +265,13 @@ int
 sched_yield()
 {
 	return syscall(SYS_yield, 0, 0, 0);
+}
+
+
+int
+sigaction(int sig, Sigaction *act, Sigaction *oact)
+{
+	return syscall(SYS_sigaction, sig, (int)act, (int)oact);
 }
 
 

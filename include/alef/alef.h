@@ -344,7 +344,8 @@ aggr Qid
 	byte	type;
 };
 
-aggr Dir {
+aggr Dir
+{
 	/* system-modified data */
 	usint	type;	/* server type */
 	uint	dev;	/* server subtype */
@@ -464,6 +465,59 @@ aggr Dirent
 	byte	name[MAXNAMLEN + 1];	/* name must be no longer than this */
 };
 
+/* From <sys/event.h>. */
+#define EVFILT_READ		(-1)
+#define EVFILT_WRITE		(-2)
+#define EVFILT_AIO		(-3)	/* attached to aio requests */
+#define EVFILT_VNODE		(-4)	/* attached to vnodes */
+#define EVFILT_PROC		(-5)	/* attached to struct proc */
+#define EVFILT_SIGNAL		(-6)	/* attached to struct proc */
+#define EVFILT_TIMER		(-7)	/* timers */
+#define EVFILT_PROCDESC		(-8)	/* attached to process descriptors */
+#define EVFILT_FS		(-9)	/* filesystem events */
+#define EVFILT_LIO		(-10)	/* attached to lio requests */
+#define EVFILT_USER		(-11)	/* User events */
+#define EVFILT_SENDFILE		(-12)	/* attached to sendfile requests */
+#define EVFILT_EMPTY		(-13)	/* empty send socket buf */
+#define EVFILT_SYSCOUNT		13
+
+/* actions */
+#define EV_ADD		0x0001		/* add event to kq (implies enable) */
+#define EV_DELETE	0x0002		/* delete event from kq */
+#define EV_ENABLE	0x0004		/* enable event */
+#define EV_DISABLE	0x0008		/* disable event (not reported) */
+#define EV_FORCEONESHOT	0x0100		/* enable _ONESHOT and force trigger */
+#define EV_KEEPUDATA	0x0200		/* do not update the udata field */
+
+/* flags */
+#define EV_ONESHOT	0x0010		/* only report one occurrence */
+#define EV_CLEAR	0x0020		/* clear event state after reporting */
+#define EV_RECEIPT	0x0040		/* force EV_ERROR on success, data=0 */
+#define EV_DISPATCH	0x0080		/* disable event after reporting */
+
+#define EV_SYSFLAGS	0xF000		/* reserved by system */
+#define	EV_DROP		0x1000		/* note should be dropped */
+#define EV_FLAG1	0x2000		/* filter-specific flag */
+#define EV_FLAG2	0x4000		/* filter-specific flag */
+
+/* returned values */
+#define EV_EOF		0x8000		/* EOF detected */
+#define EV_ERROR	0x4000		/* error, data contains errno */
+
+aggr Kevent
+{
+	uint	ident;		/* identifier for this event */
+	sint	filter;		/* filter for event */
+	usint	flags;		/* action flags for kqueue */
+	uint	fflags;		/* filter flag value */
+	uint	_;
+	int	data1;		/* filter data value */
+	int	data2;
+	void	*udata;		/* opaque user data identifier */
+	uint	_;
+	uint	ext[8];		/* extensions */
+};
+
 /* From <sys/_timespec.h>. */
 aggr Timespec
 {
@@ -476,6 +530,57 @@ aggr Timeval
 {
 	int	sec;
 	int	usec;
+};
+
+/* From <sys/resource.h>. */
+aggr Rusage
+{
+	Timeval	utime;	/* user time used */
+	Timeval	stime;	/* system time used */
+	int	maxrss;	/* max resident set size */
+	int	ixrss;	/* integral shared memory size */
+	int	idrss;	/* integral unshared data " */
+	int	isrss;		/* integral unshared stack " */
+	int	minflt;	/* page reclaims */
+	int	majflt;	/* page faults */
+	int	nswap;	/* swaps */
+	int	inblock;	/* block input operations */
+	int	oublock;	/* block output operations */
+	int	msgsnd;	/* messages sent */
+	int	msgrcv;	/* messages received */
+	int	nsignals;	/* signals received */
+	int	nvcsw;	/* voluntary context switches */
+	int	nivcsw;	/* involuntary " */
+};
+
+/* From <sys/_sigset.h>. */
+#define	_SIG_WORDS	4
+
+
+aggr Sigset
+{
+	uint bits[_SIG_WORDS];
+};
+
+
+/* From <sys/signal.h> */
+#define	SIGINT		2	/* interrupt */
+#define	SIGTERM		15	/* software termination signal from kill */
+
+#define	SIG_IGN		(void *)1
+
+#define	SA_ONSTACK	0x0001	/* take signal on signal stack */
+#define	SA_RESTART	0x0002	/* restart system call on signal return */
+#define	SA_RESETHAND	0x0004	/* reset to SIG_DFL when taking signal */
+#define	SA_NODEFER	0x0010	/* don't mask the signal we're delivering */
+#define	SA_NOCLDWAIT	0x0020	/* don't keep zombies around */
+#define	SA_SIGINFO	0x0040	/* signal handler with SA_SIGINFO args */
+
+
+aggr Sigaction {
+	void *handler;
+	int	flags;		/* see signal options below */
+	Sigset	mask;		/* signal mask to apply */
 };
 
 /* From <sys/stat.h>. */
@@ -506,33 +611,42 @@ aggr Stat
 	int	spare[20];
 };
 
-/* From <sys/resource.h>. */
-aggr Rusage
-{
-	Timeval	utime;	/* user time used */
-	Timeval	stime;	/* system time used */
-	int	maxrss;	/* max resident set size */
-	int	ixrss;	/* integral shared memory size */
-	int	idrss;	/* integral unshared data " */
-	int	isrss;		/* integral unshared stack " */
-	int	minflt;	/* page reclaims */
-	int	majflt;	/* page faults */
-	int	nswap;	/* swaps */
-	int	inblock;	/* block input operations */
-	int	oublock;	/* block output operations */
-	int	msgsnd;	/* messages sent */
-	int	msgrcv;	/* messages received */
-	int	nsignals;	/* signals received */
-	int	nvcsw;	/* voluntary context switches */
-	int	nivcsw;	/* involuntary " */
-};
-
 /* From <sys/socket.h>. */
+#define	AF_UNIX		1		/* standardized name for AF_LOCAL */
+#define	AF_INET		2		/* internetwork: UDP, TCP, etc. */
+#define	AF_INET6		28		/* IPv6 */
+
+#define	PF_INET		AF_INET
+
+#define	SOCK_STREAM	1		/* stream socket */
+#define	SOCK_DGRAM	2		/* datagram socket */
+#define	SOCK_RAW	3		/* raw-protocol interface */
+
+#define	SOL_SOCKET		0xffff		/* options for socket level */
+#define	SO_REUSEADDR	0x00000004	/* allow local address reuse */
+#define	SO_BROADCAST	0x00000020	/* permit sending of broadcast msgs */
+#define	SO_TYPE			0x1008		/* get socket type */
+
+
 aggr Sockaddr
 {
 	byte	len;
 	byte	family;
 	byte	data[20];
+};
+
+/* From <netinet/in.h>. */
+#define	INADDR_ANY		0
+#define	IPPROTO_TCP		6		/* tcp */
+
+
+aggr SockaddrIn
+{
+	byte	len;
+	byte	family;
+	usint	port;
+	uint	addr;
+	byte	zero[8];
 };
 
 int	_accept(int, Sockaddr*, uint*);
@@ -556,6 +670,8 @@ int	getrusage(int, Rusage*);
 int	getsockopt(int, int, int, void*, uint*);
 int	ioctl(int, uint, ...);
 int	kill(int, int);
+int	kevent(int, Kevent*, int, Kevent*, int, Timespec*);
+int	kqueue();
 int	lseek(int, uint, uint, int);
 int	mkdir(byte*, usint);
 void*	mmap(void*, uint, int, int, int, int);
@@ -563,6 +679,7 @@ int	nanosleep(Timespec*, Timespec*);
 int	rmdir(byte*);
 int	sched_yield();
 int	setsockopt(int, int, int, void*, uint);
+int	sigaction(int, Sigaction*, Sigaction*);
 int	socket(int, int, int);
 int	syscall(int, int, int, int);
 int	syscall6(int, int, int, int, int, int, int);

@@ -6,15 +6,6 @@
 /* From <netinet/in.h>. */
 #define	IPPROTO_TCP		6		/* tcp */
 
-aggr sockaddr_in
-{
-	byte	len;
-	byte	family;
-	usint	port;
-	uint	addr;
-	byte	zero[8];
-};
-
 
 /* From <netinet/tcp.h>. */
 #define	TCP_NODELAY	1	/* don't delay send to coalesce packets */
@@ -30,7 +21,7 @@ aggr in6_addr {
 };
 
 
-aggr sockaddr_in6 {
+aggr SockaddrIn6 {
 	byte	len;	/* length of this struct */
 	byte	family;	/* AF_INET6 */
 	usint	port;	/* Transport layer port # */
@@ -40,14 +31,14 @@ aggr sockaddr_in6 {
 };
 
 
-/* From <sys/_sockaddr_storage.h>. */
+/* From <sys/_Sockaddr_storage.h>. */
 #define	_SS_MAXSIZE	128
 #define	_SS_ALIGNSIZE	(2*sizeof(int))
 #define	_SS_PAD1SIZE	(_SS_ALIGNSIZE - sizeof(byte) - sizeof(byte))
 #define	_SS_PAD2SIZE	(_SS_MAXSIZE - sizeof(byte) - sizeof(byte) - _SS_PAD1SIZE - _SS_ALIGNSIZE)
 
 
-aggr sockaddr_storage
+aggr Sockaddr_storage
 {
 	byte	len;		/* address length */
 	byte	family;	/* address family */
@@ -57,26 +48,13 @@ aggr sockaddr_storage
 };
 
 
-/* From <sys/socket.h>. */
-#define	AF_UNIX		1		/* standardized name for AF_LOCAL */
-#define	AF_INET		2		/* internetwork: UDP, TCP, etc. */
-#define	AF_INET6		28		/* IPv6 */
-
-#define	SOCK_STREAM	1		/* stream socket */
-#define	SOCK_DGRAM	2		/* datagram socket */
-#define	SOCK_RAW	3		/* raw-protocol interface */
-
-#define	SOL_SOCKET		0xffff		/* options for socket level */
-#define	SO_REUSEADDR	0x00000004	/* allow local address reuse */
-#define	SO_TYPE			0x1008		/* get socket type */
-
 /* From <sys/un.h>. */
 #define	SUNPATHLEN	104
 
 
-aggr sockaddr_un
+aggr Sockaddr_un
 {
-	byte	len;	/* sockaddr len including null */
+	byte	len;	/* Sockaddr len including null */
 	byte	family;	/* AF_UNIX */
 	byte	path[SUNPATHLEN];	/* path name (gag) */
 };
@@ -114,15 +92,15 @@ putfd(byte *dir, int fd)
 #define unix sockunix
 
 intern int
-addrlen(sockaddr_storage *ss)
+addrlen(Sockaddr_storage *ss)
 {
 	switch (ss->family) {
 	case AF_INET:
-		return sizeof(sockaddr_in);
+		return sizeof(SockaddrIn);
 	case AF_INET6:
-		return sizeof(sockaddr_in6);
+		return sizeof(SockaddrIn6);
 	case AF_UNIX:
-		return sizeof(sockaddr_un);
+		return sizeof(Sockaddr_un);
 	}
 	return 0;
 }
@@ -140,7 +118,7 @@ announce(byte *addr, byte *dir)
 	int	port, s;
 	int	n;
 	uint	sn;
-	sockaddr_storage ss;
+	Sockaddr_storage ss;
 	byte error[ERRLEN];
 
 	buf = strdup(addr);
