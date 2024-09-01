@@ -141,7 +141,11 @@ gmtime(int tim)
 	for (d1 = 0; d0 >= dmsize[d1]; d1++)
 		d0 -= dmsize[d1];
 	dmsize[1] = 28;
-	xtime.mday = d0 + 1;
+
+	/* TODO(anton2920): bug? */
+	/* xtime.mday = d0 + 1; */
+	xtime.mday = d0;
+
 	xtime.mon = d1;
 	strcpy(xtime.zone, "GMT");
 	return & xtime;
