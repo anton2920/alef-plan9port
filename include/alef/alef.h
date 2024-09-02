@@ -468,37 +468,18 @@ aggr Dirent
 /* From <sys/event.h>. */
 #define EVFILT_READ		(-1)
 #define EVFILT_WRITE		(-2)
-#define EVFILT_AIO		(-3)	/* attached to aio requests */
-#define EVFILT_VNODE		(-4)	/* attached to vnodes */
-#define EVFILT_PROC		(-5)	/* attached to struct proc */
 #define EVFILT_SIGNAL		(-6)	/* attached to struct proc */
 #define EVFILT_TIMER		(-7)	/* timers */
-#define EVFILT_PROCDESC		(-8)	/* attached to process descriptors */
-#define EVFILT_FS		(-9)	/* filesystem events */
-#define EVFILT_LIO		(-10)	/* attached to lio requests */
 #define EVFILT_USER		(-11)	/* User events */
-#define EVFILT_SENDFILE		(-12)	/* attached to sendfile requests */
-#define EVFILT_EMPTY		(-13)	/* empty send socket buf */
-#define EVFILT_SYSCOUNT		13
 
 /* actions */
-#define EV_ADD		0x0001		/* add event to kq (implies enable) */
+#define EV_ADD	0x0001		/* add event to kq (implies enable) */
 #define EV_DELETE	0x0002		/* delete event from kq */
 #define EV_ENABLE	0x0004		/* enable event */
 #define EV_DISABLE	0x0008		/* disable event (not reported) */
-#define EV_FORCEONESHOT	0x0100		/* enable _ONESHOT and force trigger */
-#define EV_KEEPUDATA	0x0200		/* do not update the udata field */
 
 /* flags */
-#define EV_ONESHOT	0x0010		/* only report one occurrence */
 #define EV_CLEAR	0x0020		/* clear event state after reporting */
-#define EV_RECEIPT	0x0040		/* force EV_ERROR on success, data=0 */
-#define EV_DISPATCH	0x0080		/* disable event after reporting */
-
-#define EV_SYSFLAGS	0xF000		/* reserved by system */
-#define	EV_DROP		0x1000		/* note should be dropped */
-#define EV_FLAG1	0x2000		/* filter-specific flag */
-#define EV_FLAG2	0x4000		/* filter-specific flag */
 
 /* returned values */
 #define EV_EOF		0x8000		/* EOF detected */
@@ -571,9 +552,6 @@ aggr Sigset
 
 #define	SA_ONSTACK	0x0001	/* take signal on signal stack */
 #define	SA_RESTART	0x0002	/* restart system call on signal return */
-#define	SA_RESETHAND	0x0004	/* reset to SIG_DFL when taking signal */
-#define	SA_NODEFER	0x0010	/* don't mask the signal we're delivering */
-#define	SA_NOCLDWAIT	0x0020	/* don't keep zombies around */
 #define	SA_SIGINFO	0x0040	/* signal handler with SA_SIGINFO args */
 
 
