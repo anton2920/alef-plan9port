@@ -57,7 +57,7 @@ _dup(int fd)
 void
 _exit(int code)
 {
-	syscall(SYS_exit, code, 0, 0);
+	RawSyscall(SYS_exit, code, 0, 0);
 }
 
 
@@ -155,7 +155,9 @@ getdirentries(int fd, byte *buf, uint nbytes, byte *basep)
 int
 getpid()
 {
-	return syscall(SYS_getpid, 0, 0, 0);
+	int	pid;
+	(pid, nil, nil) = RawSyscall(SYS_getpid, 0, 0, 0);
+	return pid;
 }
 
 

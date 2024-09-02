@@ -2,7 +2,7 @@
 
 enum
 {
-	Nprocs		= 1500,
+	Nprocs		= 1024,
 	Execstk		= 0xff001000,	/* Exec stack linkage area */
 };
 
@@ -111,7 +111,7 @@ aggr Proc
 	int	pid;
 	Tdb	*tdb;
 	byte	*syserrstr;
-	byte	stack[100];	/* NOTE(anton2920): will be switched on before _exits(2). */
+	byte	*estack;	/* NOTE(anton2920): will be switched on before proc terminates. */
 };
 #define	PROC		(*((Proc*)ALEF_getproc(getpid())))
 

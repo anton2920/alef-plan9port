@@ -12,8 +12,10 @@ void	main(int, byte*);
 void	ALEF_lockinit(void);
 
 /* NOTE(anton2920): since on FreeBSD 'RFMEM' copies the entire address space, we need a way to store per-process data without overwriting anything. */
+/* TODO(anton2920): think about implementing pool. */
 intern Lock	ProcLock;
 intern Proc	Procs[Nprocs];
+intern byte	ExitStacks[Nprocs][8 * sizeof(void *)];
 intern int	CurrProc;
 
 intern Lock	glo; /* NOTE(anton2920): protects lock allocation for guarded sections. */
@@ -147,7 +149,7 @@ terminate(byte *s)
 		if(p == 0)
 			exits(s);
 		p = 1;
-		ALEF_linksp(&p, PROC.stack+sizeof(PROC.stack), ALEF_trans);
+		ALEF_linksp(&p, PROC.estack, ALEF_trans);
 		while(p != 0)
 			;
 	}
@@ -225,10 +227,12 @@ ALEF_setproc(int pid, Tdb *tdb, byte *syserrstr)
 
 	check CurrProc < Nprocs - 1, "too many processes";
 
-	p = &Procs[CurrProc++];
+	p = &Procs[CurrProc];
 	p->pid = pid;
 	p->tdb = tdb;
 	p->syserrstr = syserrstr;
+	p->estack = ExitStacks[CurrProc]+sizeof(ExitStacks[CurrProc]);
+	++CurrProc;
 
 	ProcLock.unlock();
 }
