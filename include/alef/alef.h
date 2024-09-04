@@ -491,11 +491,9 @@ aggr Kevent
 	sint	filter;		/* filter for event */
 	usint	flags;		/* action flags for kqueue */
 	uint	fflags;		/* filter flag value */
-	uint	_;
-	int	data1;		/* filter data value */
-	int	data2;
+	// uint	_;
+	int	data[2];		/* filter data value */
 	void	*udata;		/* opaque user data identifier */
-	uint	_;
 	uint	ext[8];		/* extensions */
 };
 
