@@ -232,6 +232,13 @@ mmap(void *addr, uint len, int prot, int flags, int fd, int offset)
 
 
 int
+munmap(void *addr, uint len)
+{
+	return syscall(SYS_munmap, (int)addr, len, 0);
+}
+
+
+int
 nanosleep(Timespec *rqtp, Timespec *rmtp)
 {
 	return syscall(SYS_nanosleep, (int)rqtp, (int)rmtp, 0);
@@ -281,6 +288,13 @@ int
 setsockopt(int s, int level, int optname, void *optval, uint optlen)
 {
 	return syscall6(SYS_setsockopt, s, level, optname, (int)optval, optlen, 0);
+}
+
+
+int
+shm_open2(byte *path, int flags, usint mode, int shmflags, byte *name)
+{
+	return syscall6(SYS_shm_open2, (int)path, flags, mode, shmflags, (int)name, 0);
 }
 
 

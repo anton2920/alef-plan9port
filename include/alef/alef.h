@@ -497,6 +497,21 @@ aggr Kevent
 	uint	ext[8];		/* extensions */
 };
 
+/* From <sys/mman.h>. */
+#define	PROT_NONE	0x00
+#define	PROT_READ	0x01
+#define	PROT_WRITE	0x02
+
+#define	MAP_SHARED	0x0001		/* share changes */
+#define	MAP_PRIVATE	0x0002		/* changes are private */
+#define	MAP_FIXED	0x0010
+#define	MAP_ANON	0x1000
+#define	MAP_EXCL	0x4000
+
+#define	MAP_FAILED ((void*)-1)
+
+#define	SHM_ANON		((byte *)1)
+
 /* From <sys/_timespec.h>. */
 aggr Timespec
 {
@@ -651,10 +666,12 @@ int	kqueue();
 int	lseek(int, uint, uint, int);
 int	mkdir(byte*, usint);
 void*	mmap(void*, uint, int, int, int, int);
+int	munmap(void*, uint);
 int	nanosleep(Timespec*, Timespec*);
 int	rmdir(byte*);
 int	sched_yield();
 int	setsockopt(int, int, int, void*, uint);
+int	shm_open2(byte*, int, usint, int, byte*);
 int	sigaction(int, Sigaction*, Sigaction*);
 int	socket(int, int, int);
 int	syscall(int, int, int, int);

@@ -1,17 +1,5 @@
 #include <alef.h>
 
-/* See <sys/mman.h>. */
-#define	PROT_READ	0x01
-#define	PROT_WRITE	0x02
-
-#define	MAP_SHARED	0x0001		/* share changes */
-#define	MAP_PRIVATE	0x0002		/* changes are private */
-#define	MAP_FIXED	0x0010
-#define	MAP_ANON	0x1000
-#define	MAP_EXCL	0x4000
-
-#define MAP_FAILED ((void*)-1)
-
 
 aggr Mem
 {
