@@ -25,12 +25,12 @@ sbrk(uint n)
 	}
 
 	if (bloc.addr == nil) {
-		bloc.addr = mmap(nil, n, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANON, -1, 0);
+		bloc.addr = mmap(nil, n, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 		if (bloc.addr == MAP_FAILED)
 			raise;
 		base = bloc.addr;
 	} else {
-		base = mmap(bloc.addr, n, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANON | MAP_FIXED | MAP_EXCL, -1, 0);
+		base = mmap(bloc.addr, n, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_FIXED | MAP_EXCL, -1, 0);
 		if (base == MAP_FAILED) {
 			raise;
 		}

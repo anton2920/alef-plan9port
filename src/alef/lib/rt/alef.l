@@ -11,7 +11,7 @@ Ref	ALEFnproc;
 void	main(int, byte*);
 void	ALEF_lockinit(void);
 
-/* NOTE(anton2920): since on FreeBSD 'RFMEM' copies the entire address space, we need a way to store per-process data without overwriting anything. */
+/* Since on FreeBSD 'RFMEM' copies the entire address space, we need a way to store per-process data without overwriting anything. */
 /* TODO(anton2920): think about implementing pool. */
 intern Lock	ProcLock;
 intern Proc	Procs[Nprocs];

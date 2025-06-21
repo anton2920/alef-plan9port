@@ -652,6 +652,7 @@ int	clock_gettime(int, Timespec*);
 int	connect(int, Sockaddr*, uint);
 int	fchmod(int, usint);
 int	fcntl(int, int, ...);
+int	_fork();
 int	fstat(int, Stat*);
 int	fstatat(int, byte*, Stat*, int);
 int	ftruncate(int, int);

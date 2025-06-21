@@ -118,6 +118,13 @@ fcntl(int fd, int cmd, ...)
 
 
 int
+_fork()
+{
+	return syscall(SYS_fork, 0, 0, 0);
+}
+
+
+int
 fstat(int fd, Stat *sb)
 {
 	return syscall(SYS_fstat, fd, (int)sb, 0);
