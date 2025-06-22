@@ -6,8 +6,9 @@
 
 #define	PAUSE	BYTE $0xF3; BYTE $0x90
 
-	TEXT rfork_proc(SB), 1, $16
-	MOVL	$LOCKED, spin+-12(SP)
+/* int rfork_proc(int, Tdb*, byte*) */
+TEXT rfork_proc(SB), 1, $16
+	MOVL	$LOCKED, spin+-4(SP)
 
 	MOVL	flags+0(FP), AX
 	MOVL	AX, 4(SP)
@@ -25,9 +26,10 @@ child:
 	PAUSE
 	PAUSE
 	MOVL	$LOCKED, AX
-	XCHGL	AX, spin+-12(SP)
-	CMPL	AX, $0
+	XCHGL	AX, spin+-4(SP)
+	CMPL	AX, $UNLOCKED
 	JNE	child
+	MOVL	$0, AX
 	RET
 parent:
 	MOVL	AX, (SP)
@@ -36,7 +38,7 @@ parent:
 	MOVL	syserrstr+8(FP), AX
 	MOVL	AX, 8(SP)
 	CALL	ALEF_setproc(SB)
-	MOVL	$UNLOCKED, spin+-12(SP)
+	MOVL	$UNLOCKED, spin+-4(SP)
 
 	/* NOTE(anton2920): caller doesn't care about pid, so return anything that is 'true'. */
 	MOVL	$1, AX

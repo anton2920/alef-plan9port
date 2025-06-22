@@ -18,7 +18,7 @@ intern Proc	Procs[Nprocs];
 intern byte	ExitStacks[Nprocs][8 * sizeof(void *)];
 intern int	CurrProc;
 
-intern Lock	glo; /* NOTE(anton2920): protects lock allocation for guarded sections. */
+intern Lock	glo; /* Protects lock allocation for guarded sections. */
 
 byte**	environ;
 
