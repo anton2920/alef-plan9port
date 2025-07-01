@@ -1,10 +1,9 @@
-#include <alef.h>
+#include	<alef.h>
+
 
 /*
  *  make an address, add the defaults
  */
-
-
 byte *
 netmkaddr(byte *linear, byte *defnet, byte *defsrv)
 {

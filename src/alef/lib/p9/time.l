@@ -1,15 +1,14 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
 
-/* From <sys/_clock_id.h>. */
-#define CLOCK_REALTIME		0
 
 int
-time(int *tp)
+_time(int *tp)
 {
 	Timespec tv;
 
 	if (clock_gettime(CLOCK_REALTIME, &tv) < 0) {
-		return - 1;
+		return -1;
 	}
 	if (tp) {
 		*tp = tv.sec;
@@ -18,3 +17,8 @@ time(int *tp)
 }
 
 
+int
+time()
+{
+	return _time(nil);
+}

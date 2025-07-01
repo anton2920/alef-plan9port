@@ -1,8 +1,5 @@
-#include <alef.h>
-
-/* From <fcntl.h>. */
-#define	AT_FDCWD				-100
-#define	AT_SYMLINK_NOFOLLOW	0x0200	/* Do not follow symbolic links */
+#include	<alef.h>
+#include	"sys.h"
 
 
 int
@@ -13,9 +10,7 @@ lstat(byte *path, Stat *sb)
 
 
 int
-stat(byte *path, Stat *sb)
+_stat(byte *path, Stat *sb)
 {
 	return fstatat(AT_FDCWD, path, sb, 0);
 }
-
-

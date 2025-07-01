@@ -15,7 +15,7 @@ void	ALEF_lockinit(void);
 /* TODO(anton2920): think about implementing pool. */
 intern Lock	ProcLock;
 intern Proc	Procs[Nprocs];
-intern byte	ExitStacks[Nprocs][8 * sizeof(void *)];
+intern byte	ExitStacks[Nprocs][24 * sizeof(void *)]; /* NOTE(anton2920): stack should be at least 92 bytes to hold the deepest function call chain. */
 intern int	CurrProc;
 
 intern Lock	glo; /* Protects lock allocation for guarded sections. */

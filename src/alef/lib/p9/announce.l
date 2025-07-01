@@ -1,70 +1,11 @@
-#include <alef.h>
-
-#define _STANDALONE
-#include <errno.h>
-
-/* From <netinet/in.h>. */
-#define	IPPROTO_TCP		6		/* tcp */
-
-
-/* From <netinet/tcp.h>. */
-#define	TCP_NODELAY	1	/* don't delay send to coalesce packets */
-
-
-/* From <netinet6/in6.h>. */
-aggr in6_addr {
-	union {
-		byte		__u6_addr8[16];
-		usint	__u6_addr16[8];
-		uint	__u6_addr32[4];
-	} __u6_addr;			/* 128-bit IP6 address */
-};
-
-
-aggr SockaddrIn6 {
-	byte	len;	/* length of this struct */
-	byte	family;	/* AF_INET6 */
-	usint	port;	/* Transport layer port # */
-	uint	flowinfo;	/* IP6 flow information */
-	in6_addr	addr;	/* IP6 address */
-	uint	scope_id;	/* scope zone index */
-};
-
-
-/* From <sys/_Sockaddr_storage.h>. */
-#define	_SS_MAXSIZE	128
-#define	_SS_ALIGNSIZE	(2*sizeof(int))
-#define	_SS_PAD1SIZE	(_SS_ALIGNSIZE - sizeof(byte) - sizeof(byte))
-#define	_SS_PAD2SIZE	(_SS_MAXSIZE - sizeof(byte) - sizeof(byte) - _SS_PAD1SIZE - _SS_ALIGNSIZE)
-
-
-aggr Sockaddr_storage
-{
-	byte	len;		/* address length */
-	byte	family;	/* address family */
-	byte	pad1[_SS_PAD1SIZE];
-	int	align[2];	/* force desired alignment */
-	byte	pad2[_SS_PAD2SIZE];
-};
-
-
-/* From <sys/un.h>. */
-#define	SUNPATHLEN	104
-
-
-aggr Sockaddr_un
-{
-	byte	len;	/* Sockaddr len including null */
-	byte	family;	/* AF_UNIX */
-	byte	path[SUNPATHLEN];	/* path name (gag) */
-};
-
+#include	<alef.h>
+#include	"sys.h"
 
 #undef sun
 #define sun sockun
 
-int
-p9dialparse(byte *addr, byte **pnet, byte **punix, void *phost, int *pport);
+#undef unix
+#define unix sockunix
 
 
 int
@@ -73,10 +14,10 @@ _p9netfd(byte *dir)
 	int	fd;
 
 	if (strncmp(dir, "/dev/fd/", 8) != 0)
-		return - 1;
+		return -1;
 	fd = strtoi(dir + 8, &dir, 0);
 	if (*dir != 0)
-		return - 1;
+		return -1;
 	return fd;
 }
 
@@ -87,9 +28,6 @@ putfd(byte *dir, int fd)
 	snprint(dir, NETPATHLEN, "/dev/fd/%d", fd);
 }
 
-
-#undef unix
-#define unix sockunix
 
 intern int
 addrlen(Sockaddr_storage *ss)
@@ -113,8 +51,8 @@ int
 announce(byte *addr, byte *dir)
 {
 	int	proto;
-	byte * buf, *unix;
-	byte * net;
+	byte *buf, *unix;
+	byte *net;
 	int	port, s;
 	int	n;
 	uint	sn;
@@ -123,11 +61,11 @@ announce(byte *addr, byte *dir)
 
 	buf = strdup(addr);
 	if (buf == nil)
-		return - 1;
+		return -1;
 
 	if (p9dialparse(buf, &net, &unix, &ss, &port) < 0) {
 		free(buf);
-		return - 1;
+		return -1;
 	}
 	if (strcmp(net, "tcp") == 0)
 		proto = SOCK_STREAM;
@@ -138,20 +76,20 @@ announce(byte *addr, byte *dir)
 	else {
 		werrstr("can only handle tcp, udp, and unix: not %s", net);
 		free(buf);
-		return - 1;
+		return -1;
 	}
 	free(buf);
 
 	if ((s = socket(ss.family, proto, 0)) < 0)
-		return - 1;
+		return -1;
 	sn = sizeof n;
-	if (port && getsockopt(s, SOL_SOCKET, SO_TYPE, (void * ) & n, &sn) >= 0 && n == SOCK_STREAM) {
+	if (port && getsockopt(s, SOL_SOCKET, SO_TYPE, (void *)&n, &sn) >= 0 && n == SOCK_STREAM) {
 		n = 1;
-		setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (byte * ) & n, sizeof n);
+		setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (byte *)&n, sizeof n);
 	}
-	if (_bind(s, (Sockaddr * ) & ss, addrlen(&ss)) < 0) {
+	if (_bind(s, (Sockaddr *)&ss, addrlen(&ss)) < 0) {
 		close(s);
-		return - 1;
+		return -1;
 	}
 	if (proto == SOCK_STREAM) {
 		_listen(s, 8);
@@ -161,25 +99,25 @@ announce(byte *addr, byte *dir)
 
 Unix:
 	if ((s = socket(ss.family, SOCK_STREAM, 0)) < 0)
-		return - 1;
-	if (_bind(s, (Sockaddr * ) & ss, addrlen(&ss)) < 0) {
+		return -1;
+	if (_bind(s, (Sockaddr *)&ss, addrlen(&ss)) < 0) {
 		rerrstr(error, sizeof error);
 		if (strcmp(error, strerror(EADDRINUSE)) == 0) {
-			if (connect(s, (Sockaddr * ) & ss, addrlen(&ss)) < 0) {
+			if (connect(s, (Sockaddr *)&ss, addrlen(&ss)) < 0) {
 				rerrstr(error, sizeof error);
 				if (strcmp(error, strerror(ECONNREFUSED)) == 0) {
 					/* dead socket, so remove it */
 					remove(unix);
 					close(s);
 					if ((s = socket(ss.family, SOCK_STREAM, 0)) < 0)
-						return - 1;
-					if (_bind(s, (Sockaddr * ) & ss, addrlen(&ss)) >= 0)
+						return -1;
+					if (_bind(s, (Sockaddr *)&ss, addrlen(&ss)) >= 0)
 						goto Success;
 				}
 			}
 		}
 		close(s);
-		return - 1;
+		return -1;
 	}
 Success:
 	_listen(s, 8);
@@ -198,14 +136,14 @@ listen(byte *dir, byte *newdir)
 
 	if ((fd = _p9netfd(dir)) < 0) {
 		werrstr("bad 'directory' in listen: %s", dir);
-		return - 1;
+		return -1;
 	}
 
 	if ((fd = _accept(fd, nil, nil)) < 0)
-		return - 1;
+		return -1;
 
 	one = 1;
-	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (byte * ) & one, sizeof one);
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (byte *)&one, sizeof one);
 
 	putfd(newdir, fd);
 	return fd;
@@ -222,7 +160,7 @@ accept(int, byte *dir)
 
 	if ((fd = _p9netfd(dir)) < 0) {
 		werrstr("bad 'directory' in accept");
-		return - 1;
+		return -1;
 	}
 	/* need to dup because the listen fd will be closed */
 	return _dup(fd);
@@ -236,7 +174,5 @@ int
 reject(int, byte *, byte *)
 {
 	werrstr("not implemented");
-	return - 1;
+	return -1;
 }
-
-

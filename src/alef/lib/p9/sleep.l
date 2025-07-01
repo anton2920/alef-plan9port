@@ -1,4 +1,6 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
+
 
 int
 sleep(int msecs)

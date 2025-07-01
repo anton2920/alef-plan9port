@@ -1,44 +1,5 @@
-#include <alef.h>
-
-/* From <fcntl.h>. */
-#define	O_RDONLY	0x00000		/* open for reading only */
-#define	O_NONBLOCK	0x00004		/* no delay */
-#define	O_APPEND	0x00008		/* set append mode */
-#define	O_CREAT		0x00200		/* create if nonexistent */
-#define	O_TRUNC		0x00400		/* truncate to zero length */
-#define	O_EXCL		0x00800		/* error if already exists */
-
-#define	O_DIRECT	0x10000
-
-#define	FD_CLOEXEC	1		/* close-on-exec flag */
-
-#define	F_RDLCK		1		/* shared or read lock */
-#define	F_UNLCK		2		/* unlock */
-#define	F_WRLCK		3		/* exclusive or write lock */
-
-#define	F_SETFL		4		/* set file status flags */
-#define	F_SETLK		12		/* set record locking information */
-
-/* From <stdio.h>. */
-#define	SEEK_SET		0		/* set file offset to offset */
-#define	SEEK_CUR		1	/* set file offset to current plus offset */
-
-/* From <sys/fcntl.h>. */
-#define	AT_SYMLINK_NOFOLLOW	0x0200	/* Do not follow symbolic links */
-
-/* From <sys/stat.h>. */
-#define	S_ISDIR(m)	(((m) & 0170000) == 0040000)	/* directory */
-#define	S_ISLNK(m)	(((m) & 0170000) == 0120000)	/* symbolic link */
-
-aggr Flock
-{
-	int	start[2];	/* starting offset */
-	int	len[2];	/* len = 0 means until end of file */
-	int	pid;		/* lock owner */
-	sint	type;		/* lock type: read/write, etc. */
-	sint	whence;	/* type of start */
-	int	sysid;	/* remote system id or zero for local */
-};
+#include	<alef.h>
+#include	"sys.h"
 
 
 aggr DirMap
@@ -61,7 +22,6 @@ aggr DirBuild
 
 intern DirMap dirs;
 
-int	_p9dir(Stat *, Stat *, byte*, Dir*, byte**, byte*);
 
 intern
 int
@@ -72,7 +32,7 @@ dirput(int fd)
 
 	if (fd < 0) {
 		werrstr("invalid fd");
-		return - 1;
+		return -1;
 	}
 
 	dirs.lock();
@@ -86,7 +46,7 @@ dirput(int fd)
 		if (tmp == nil) {
 			werrstr("out of memory");
 			dirs.unlock();
-			return - 1;
+			return -1;
 		}
 
 		for (i = dirs.nd; i < nd; i++) {
@@ -139,7 +99,7 @@ remove(byte *path)
 {
 	Stat st;
 
-	if (stat(path, &st) >= 0 && S_ISDIR(st.mode)) {
+	if (_stat(path, &st) >= 0 && S_ISDIR(st.mode)) {
 		return rmdir(path);
 	} else {
 		return unlink(path);
@@ -202,7 +162,7 @@ create(byte *path, int mode, uint perm)
 				if (fcntl(fd, F_SETLK, &fl) < 0) {
 					close(fd);
 					werrstr("lock: %r");
-					return - 1;
+					return -1;
 				}
 			}
 			if (cexec)
@@ -248,7 +208,7 @@ open(byte *name, int mode)
 	}
 	if (mode) {
 		werrstr("mode 0x%x not supported", mode);
-		return - 1;
+		return -1;
 	}
 	fd = _open(name, umode, 0);
 	if (fd >= 0) {
@@ -264,14 +224,14 @@ open(byte *name, int mode)
 			if (fcntl(fd, F_SETLK, &fl) < 0) {
 				close(fd);
 				werrstr("lock: %r");
-				return - 1;
+				return -1;
 			}
 		}
 		if (cexec)
 			fcntl(fd, F_SETFL, FD_CLOEXEC);
-		if (fstat(fd, &st) >= 0 && S_ISDIR(st.mode)) {
+		if (_fstat(fd, &st) >= 0 && S_ISDIR(st.mode)) {
 			if (dirput(fd) < 0) {
-				return - 1;
+				return -1;
 			}
 		}
 		if (rclose)
@@ -301,9 +261,9 @@ int
 dirbuild1(DirBuild *b, Stat *lst, Stat *st, byte *name)
 {
 	int	i, nstr;
-	Dir * d;
+	Dir *d;
 	int	md, mstr;
-	byte	 * lo, *hi, *newlo;
+	byte	 *lo, *hi, *newlo;
 
 	nstr = _p9dir(lst, st, name, nil, nil, nil);
 	if (b->md - b->nd < 1 || b->estr - b->str < nstr) {
@@ -323,7 +283,7 @@ dirbuild1(DirBuild *b, Stat *lst, Stat *st, byte *name)
 			mstr = 512;
 		d = realloc(b->d, md * sizeof d[0] + mstr);
 		if (d == nil)
-			return - 1;
+			return -1;
 		// move strings and update pointers in Dirs
 		lo = (byte * ) & b->d[b->md];
 		newlo = (byte * ) & d[md];
@@ -361,7 +321,7 @@ dirreadmax(int fd, Dir **dp, int max)
 
 	if (dirget(fd) == -1) {
 		werrstr("not a directory");
-		return - 1;
+		return -1;
 	}
 
 	memset(&b, 0, sizeof b);
@@ -369,14 +329,14 @@ dirreadmax(int fd, Dir **dp, int max)
 		if (getdirentries(fd, (byte * ) & de, sizeof(de), nil) <= 0) {
 			if (b.nd == 0) {
 				print("Error: %r\n");
-				return - 1;
+				return -1;
 			}
 			break;
 		}
 		if (de.off[0] != 0) {
 			if (seek(fd, de.off[0], SEEK_SET) < 0) {
 				print("lseek error: %r\n");
-				return - 1;
+				return -1;
 			}
 		}
 

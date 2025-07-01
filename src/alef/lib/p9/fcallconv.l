@@ -1,5 +1,6 @@
-#include <alef.h>
-#include <fcall.h>
+#include	<alef.h>
+#include	<fcall.h>
+
 
 intern uint dumpsome(byte*, byte*, byte*, int);
 intern void fdirconv(byte*, byte*, Dir*);
@@ -43,12 +44,12 @@ seprint(byte *buf, byte *e, byte *fmt, ...)
 int
 fcallconv(Printspec *spec)
 {
-	Fcall * f;
+	Fcall *f;
 	int	fid, type, tag, i;
 	byte	buf[512], tmp[200];
-	byte	 * p, *e;
-	Dir * d;
-	Qid * q;
+	byte	 *p, *e;
+	Dir *d;
+	Qid *q;
 
 	e = buf + sizeof(buf);
 	f = *(Fcall * *)spec->o;
@@ -269,5 +270,3 @@ dumpsome(byte *ans, byte *e, byte *buf, int count)
 	check p < e;
 	return p - ans;
 }
-
-

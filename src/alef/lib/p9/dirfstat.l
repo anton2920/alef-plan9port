@@ -1,16 +1,16 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
 
-int	_p9dir(Stat*, Stat*, byte*, Dir*, byte**, byte*);
 
 Dir*
 dirfstat(int fd)
 {
-	byte	 * str, tmp[100];
+	byte	 *str, tmp[100];
 	int	nstr;
 	Stat st;
-	Dir * d;
+	Dir *d;
 
-	if (fstat(fd, &st) < 0)
+	if (_fstat(fd, &st) < 0)
 		return nil;
 
 	snprint(tmp, sizeof tmp, "/dev/fd/%d", fd);
@@ -18,9 +18,7 @@ dirfstat(int fd)
 	d = malloc(sizeof(Dir) + nstr);
 	if (d == nil)
 		return nil;
-	str = (byte * ) & d[1];
+	str = (byte *) & d[1];
 	_p9dir(&st, &st, tmp, d, &str, str + nstr);
 	return d;
 }
-
-

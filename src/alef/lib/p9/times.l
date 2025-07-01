@@ -1,8 +1,6 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
 
-/* From <sys/resource.h>. */
-#define	RUSAGE_SELF	0
-#define	RUSAGE_CHILDREN	-1
 
 int
 times(int *t)
@@ -10,7 +8,7 @@ times(int *t)
 	Rusage ru, cru;
 
 	if (getrusage(RUSAGE_SELF, &ru) < 0 || getrusage(RUSAGE_CHILDREN, &cru) < 0) {
-		return - 1;
+		return -1;
 	}
 
 	t[0] = ru.utime.sec * 1000 + ru.utime.usec / 1000;
@@ -21,5 +19,3 @@ times(int *t)
 	/* BUG */
 	return t[0] + t[1] + t[2] + t[3];
 }
-
-

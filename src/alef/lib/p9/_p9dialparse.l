@@ -1,116 +1,18 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
 
-#define nelem(arr) (sizeof(arr)/sizeof((arr)[0]))
-
-
-/* From <netdb.h>. */
-/*
- * Structures returned by network data base library.  All addresses are
- * supplied in host order, and returned in network order (suitable for
- * use in system calls).
- */
-aggr hostent
-{
-	byte	 * name;	/* official name of host */
-	byte	 * *aliases;	/* alias list */
-	int	addrtype;	/* host address type */
-	int	length;	/* length of address */
-	byte	 * *addr_list;	/* list of addresses from name server */
-};
+#define	nelem(x)	(sizeof(x)/sizeof((x)[0]))
+#define	CLASS(p)	((*(ubyte*)(p))>>6)
 
 
-aggr servent
-{
-	byte	 * name;	/* official service name */
-	byte	 * *aliases;	/* alias list */
-	int	port;		/* port # */
-	byte	 * proto;	/* protocol to use */
-};
-
-
-aggr addrinfo
-{
-	int	flags;	/* AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST */
-	int	family;	/* AF_xxx */
-	int	socktype;	/* SOCK_xxx */
-	int	protocol;	/* 0 or IPPROTO_xxx for IPv4 and IPv6 */
-	uint addrlen;	/* length of ai_addr */
-	byte	 * canonname;	/* canonical name for hostname */
-	Sockaddr * addr;	/* binary address */
-	addrinfo * next;	/* next structure in linked list */
-};
-
-
-/* From <netinet6/in6.h>. */
-aggr in6_addr
-{
-	union {
-		byte		__u6_addr8[16];
-		usint	__u6_addr16[8];
-		uint	__u6_addr32[4];
-	} __u6_addr;			/* 128-bit IP6 address */
-};
-
-
-aggr SockaddrIn6
-{
-	byte	len;	/* length of this struct */
-	byte	family;	/* AF_INET6 */
-	usint	port;	/* Transport layer port # */
-	uint	flowinfo;	/* IP6 flow information */
-	in6_addr	addr;	/* IP6 address */
-	uint	scope_id;	/* scope zone index */
-};
-
-
-/* From <sys/_Sockaddr_storage.h>. */
-#define	_SS_MAXSIZE	128
-#define	_SS_ALIGNSIZE	(2*sizeof(int))
-#define	_SS_PAD1SIZE	(_SS_ALIGNSIZE - sizeof(byte) - sizeof(byte))
-#define	_SS_PAD2SIZE	(_SS_MAXSIZE - sizeof(byte) - sizeof(byte) - _SS_PAD1SIZE - _SS_ALIGNSIZE)
-
-
-aggr Sockaddr_storage
-{
-	byte	len;		/* address length */
-	byte	family;	/* address family */
-	byte	pad1[_SS_PAD1SIZE];
-	int	align[2];	/* force desired alignment */
-	byte	pad2[_SS_PAD2SIZE];
-};
-
-
-/* From <sys/socket.h>. */
-#define	AF_UNIX		1		/* standardized name for AF_LOCAL */
-#define	AF_INET		2		/* internetwork: UDP, TCP, etc. */
-#define	AF_INET6		28		/* IPv6 */
-
-
-/* From <sys/un.h>. */
-#define	SUNPATHLEN	104
-
-
-aggr Sockaddr_un
-{
-	byte	len;	/* Sockaddr len including null */
-	byte	family;	/* AF_UNIX */
-	byte	path[SUNPATHLEN];	/* path name (gag) */
-};
-
-
-intern byte	*nets[] = {
-	"tcp", "udp", nil };
-
-
-#define CLASS(p) ((*(ubyte*)(p))>>6)
+intern byte	*nets[] = { "tcp", "udp", nil };
 
 aggr NetTable
 {
-	byte	 * net;
-	byte	 * service;
+	byte	 *net;
+	byte	 *service;
 	int	port;
 };
-
 
 intern NetTable porttbl[] = {
 	{ "tcp", 	"9fs", 	564 },
@@ -143,7 +45,7 @@ ntohs(usint port)
 }
 
 
-intern hostent *
+intern Hostent *
 gethostbyname(byte *)
 {
 	werrstr("not implemented");
@@ -151,7 +53,7 @@ gethostbyname(byte *)
 }
 
 
-intern servent *
+intern Servent *
 getservbyname(byte *, byte *)
 {
 	werrstr("not implemented");
@@ -160,11 +62,11 @@ getservbyname(byte *, byte *)
 
 
 intern int
-getaddrinfo(byte *, byte *, addrinfo *, addrinfo **res)
+getaddrinfo(byte *, byte *, Addrinfo *, Addrinfo **res)
 {
 	werrstr("not implemented");
 	*res = nil;
-	return - 1;
+	return -1;
 }
 
 
@@ -180,7 +82,7 @@ setport(Sockaddr_storage *ss, int port)
 		break;
 	default:
 		errstr("unknown protocol family %d", ss->family);
-		return - 1;
+		return -1;
 	}
 	return 0;
 }
@@ -191,10 +93,10 @@ p9dialparse(byte *addr, byte **pnet, byte **punix, void *phost, int *pport)
 {
 	byte	 * net, *host, *port, *e;
 	int	i;
-	servent * se;
-	hostent * he;
+	Servent * se;
+	Hostent * he;
 	Sockaddr_storage * ss;
-	addrinfo * result;
+	Addrinfo * result;
 
 	ss = phost;
 
@@ -204,35 +106,35 @@ p9dialparse(byte *addr, byte **pnet, byte **punix, void *phost, int *pport)
 	net = addr;
 	if ((host = strchr(net, '!')) == nil) {
 		werrstr("malformed address");
-		return - 1;
+		return -1;
 	}
 	*host++ = 0;
 	if ((port = strchr(host, '!')) == nil) {
 		if (strcmp(net, "unix") == 0 || strcmp(net, "net") == 0) {
 Unix:
-			if (strlen(host) + 1 > sizeof ((Sockaddr_un * )ss)->path) {
+			if (strlen(host) + 1 > sizeof ((Sockaddr_un *)ss)->path) {
 				werrstr("unix socket name too long");
-				return - 1;
+				return -1;
 			}
 			*punix = host;
 			*pnet = "unix";
 			ss->family = AF_UNIX;
-			strcpy(((Sockaddr_un * )ss)->path, host);
+			strcpy(((Sockaddr_un *)ss)->path, host);
 			*pport = 0;
 			return 0;
 		}
 		werrstr("malformed address");
-		return - 1;
+		return -1;
 	}
 	*port++ = 0;
 
 	if (*host == 0) {
 		werrstr("malformed address (empty host)");
-		return - 1;
+		return -1;
 	}
 	if (*port == 0) {
 		werrstr("malformed address (empty port)");
-		return - 1;
+		return -1;
 	}
 
 	if (strcmp(net, "unix") == 0)
@@ -240,7 +142,7 @@ Unix:
 
 	if (strcmp(net, "tcp") != 0 && strcmp(net, "udp") != 0 && strcmp(net, "net") != 0) {
 		werrstr("bad network %s!%s!%s", net, host, port);
-		return - 1;
+		return -1;
 	}
 
 	/* translate host */
@@ -251,30 +153,30 @@ Unix:
 		ss->family = he->addrtype;
 		switch (ss->family) {
 		case AF_INET:
-			((SockaddrIn * )ss)->addr = *(uint * ) * (he->addr_list);
+			((SockaddrIn *)ss)->addr = *(uint *) * (he->addr_list);
 			break;
 		case AF_INET6:
-			((SockaddrIn6 * )ss)->addr = *(in6_addr * ) * (he->addr_list);
+			((SockaddrIn6 *)ss)->addr = *(In6_addr *) * (he->addr_list);
 			break;
 		default:
 			errstr("unknown protocol family %d", ss->family);
-			return - 1;
+			return -1;
 		}
 	} else if (getaddrinfo(host, nil, nil, &result) == 0) {
 		switch (result->family) {
 		case AF_INET:
-			memmove((SockaddrIn * )ss, result->addr, result->addrlen);
+			memmove((SockaddrIn *)ss, result->addr, result->addrlen);
 			break;
 		case AF_INET6:
-			memmove((SockaddrIn6 * )ss, result->addr, result->addrlen);
+			memmove((SockaddrIn6 *)ss, result->addr, result->addrlen);
 			break;
 		default:
 			errstr("unknown protocol family %d", ss->family);
-			return - 1;
+			return -1;
 		}
 	} else {
 		werrstr("unknown host %s", host);
-		return - 1;
+		return -1;
 	}
 
 	/* translate network and port; should return list rather than first */
@@ -299,12 +201,12 @@ Unix:
 
 	if (strcmp(net, "net") == 0) {
 		werrstr("unknown service net!*!%s", port);
-		return - 1;
+		return -1;
 	}
 
 	if (strcmp(net, "tcp") != 0 && strcmp(net, "udp") != 0) {
 		werrstr("unknown network %s", net);
-		return - 1;
+		return -1;
 	}
 
 	*pnet = net;
@@ -319,7 +221,5 @@ Unix:
 		return setport(ss, *pport);
 	}
 	werrstr("unknown service %s!*!%s", net, port);
-	return - 1;
+	return -1;
 }
-
-

@@ -1,5 +1,6 @@
-#include <alef.h>
-#include <fcall.h>
+#include	<alef.h>
+#include	<fcall.h>
+
 
 byte *modes[] =
 {
@@ -13,13 +14,16 @@ byte *modes[] =
 	"rwx",
 };
 
+
 intern void
 rwx(int m, byte *s)
 {
 	strncpy(s, modes[m], 3);
 }
 
+
 intern byte buf[16];
+
 
 int
 dirmodeconv(Printspec *v)

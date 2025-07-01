@@ -1,18 +1,22 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
+
 
 #define DBG(s)
 #define MAXDEPTH	100
+
 
 intern void namedev(Dir*);
 intern int  samefile(Dir*, Dir*);
 intern int  crossedmnt(byte*);
 
+
 byte *
 getwd(byte *s , int size)
 {
-	Dir * p, *root, **db;
+	Dir *p, *root, **db;
 	int	depth, l, i;
-	byte * x, *v;
+	byte *x, *v;
 
 	depth = 0;
 	db = malloc(sizeof(Dir * ) * MAXDEPTH);
@@ -114,7 +118,7 @@ intern void
 namedev(Dir *p)
 {
 	int	i, fd, ok;
-	Dir * dirs, *dirb, *tdirb;
+	Dir *dirs, *dirb, *tdirb;
 	int	ndirs;
 	byte sd[NAMELEN*2];
 
@@ -183,10 +187,8 @@ crossedmnt(byte *elem)
 		return 1;
 
 	sprint(junk, "../%s", elem);
-	if (stat(junk, (Stat * )junk) < 0)
+	if (_stat(junk, (Stat * )junk) < 0)
 		return 1;
 
 	return 0;
 }
-
-

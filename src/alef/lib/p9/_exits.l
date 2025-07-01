@@ -1,4 +1,5 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
 
 void
 _exits(byte *s)
@@ -8,5 +9,3 @@ _exits(byte *s)
 	}
 	_exit(1);
 }
-
-

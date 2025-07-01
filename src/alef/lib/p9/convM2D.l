@@ -1,28 +1,29 @@
 #include	<alef.h>
 #include	<fcall.h>
 
+
 int
 statcheck(byte *buf, uint nbuf)
 {
-	byte * ebuf;
+	byte *ebuf;
 	int	i, nstr;
 
 	ebuf = buf + nbuf;
 
 	if (nbuf < STATFIXLEN || nbuf != BIT16SZ + GBIT16(buf))
-		return - 1;
+		return -1;
 
 	buf += STATFIXLEN - 4 * BIT16SZ;
 
 	nstr = 4;
 	for (i = 0; i < nstr; i++) {
 		if (buf + BIT16SZ > ebuf)
-			return - 1;
+			return -1;
 		buf += BIT16SZ + GBIT16(buf);
 	}
 
 	if (buf != ebuf)
-		return - 1;
+		return -1;
 
 	return 0;
 }
@@ -33,8 +34,8 @@ intern byte nullstring[] = "";
 uint
 convM2D(byte *buf, uint nbuf, Dir *d, byte *strs)
 {
-	byte * p, *ebuf;
-	byte * sv[5];
+	byte *p, *ebuf;
+	byte *sv[5];
 	int	i, ns, nstr;
 
 	if (nbuf < STATFIXLEN)

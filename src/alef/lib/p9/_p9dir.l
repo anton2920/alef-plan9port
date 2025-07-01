@@ -1,26 +1,8 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
 
 #define _HAVESTGEN
 
-/* From <sys/stat.h>. */
-#define	S_ISDIR(m)	(((m) & 0170000) == 0040000)	/* directory */
-#define	S_ISCHR(m)	(((m) & 0170000) == 0020000)	/* char special */
-#define	S_ISBLK(m)	(((m) & 0170000) == 0060000)	/* block special */
-#define	S_ISFIFO(m)	(((m) & 0170000) == 0010000)	/* fifo or socket */
-#define	S_ISLNK(m)	(((m) & 0170000) == 0120000)	/* symbolic link */
-#define	S_ISSOCK(m)	(((m) & 0170000) == 0140000)	/* socket */
-
-
-/* From <sys/ioccom.h>. */
-#define	IOCPARM_SHIFT	13		/* number of bits for ioctl size */
-#define	IOCPARM_MASK	((1 << IOCPARM_SHIFT) - 1) /* parameter length mask */
-
-#define	IOC_OUT		0x40000000	/* copy out parameters */
-
-#define	_IOC(inout,group,num,len)	((uint) ((inout) | (((len) & IOCPARM_MASK) << 16) | ((group) << 8) | (num)))
-
-/* From <sys/disk.h>. */
-#define	DIOCGMEDIASIZE	_IOC(IOC_OUT, 'd', 129, 8)	/* Get media size in bytes */
 
 intern
 (int, int)
@@ -153,5 +135,3 @@ _p9dir(Stat *lst, Stat *st, byte *name, Dir *d, byte **str, byte *estr)
 
 	return sz;
 }
-
-

@@ -20,8 +20,9 @@ STARTTIME=`date +%s`
 
 case $1 in
 	'')
-		run ../../../../bin/8al -w -I../386 -I../../../../include/alef *.l ../386/*.l ../p9/*.l ../port/*.l ../sys/*.l
-		cp ../port/crypt.8.save crypt.8
+		run ../../../../bin/8al -w -I../386 -I../sys -I../../../../include/alef *.l ../386/*.l ../p9/*.l ../port/*.l ../sys/*.l
+		run ../../../../bin/8al -S -I../386 -I../sys -I../../../../include/alef *.l ../386/*.l ../p9/*.l ../port/*.l ../sys/*.l
+		run cp ../port/crypt.8.save crypt.8
 
 		for file in `echo ../386/*.s ../sys/*.s`; do
 			run ../../../../bin/8a $file

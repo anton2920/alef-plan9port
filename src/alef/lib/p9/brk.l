@@ -1,10 +1,11 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
 
 
 aggr Mem
 {
 	Lock;
-	byte * 	addr;
+	byte*	addr;
 };
 
 
@@ -16,12 +17,12 @@ sbrk(uint n)
 	void * base;
 
 	/* NOTE(anton2920): rounding up to the page boundary. */
-	n = (n + (4096 - 1)) & ~(4096 - 1);
+	n = (n + (4096 -1)) & ~(4096 -1);
 
 	bloc.lock();
 	rescue {
 		bloc.unlock();
-		return (void * ) - 1;
+		return (void * )-1;
 	}
 
 	if (bloc.addr == nil) {

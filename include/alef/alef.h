@@ -1,3 +1,6 @@
+//#pragma src "/sys/src/alef/lib"
+//#pragma lib "/$M/lib/alef/libA.a"
+
 /*
  *	definitions common to Plan 9 & Unix
  */
@@ -354,7 +357,7 @@ aggr Dir
 	uint	mode;	/* permissions */
 	uint	atime;	/* last read time */
 	uint	mtime;	/* last write time */
-	int	length[2];	/* file length */
+	uint	length[2];	/* file length */
 	byte	*name;	/* last element of path */
 	byte	*uid;	/* owner name */
 	byte	*gid;	/* group name */
@@ -391,10 +394,12 @@ aggr Tm
  *	Plan 9 system calls
  */
 int	bind(byte*, byte*, int);
+int	brk_(void*);
 int	create(byte*, int, uint);
 int	dup(int, int);
 int	fauth(int, byte*);
 int	fsession(int, byte*);
+int	fstat(int, byte*);
 int	fwstat(int, byte*);
 int	mount(int, byte*, int, byte*);
 int	noted(int);
@@ -407,6 +412,7 @@ int	segbrk(void*, void*);
 int	segdetach(void*);
 int	segflush(void*, uint);
 int	segfree(void*, uint);
+int	stat(byte*, byte*);
 int	unmount(byte*, byte*);
 int	wait(Waitmsg*);
 int	wstat(byte*, byte*);
@@ -440,7 +446,8 @@ int	decrypt(void*, void*, int);
 byte*	asctime(Tm*);
 Tm*	gmtime(int);
 Tm*	localtime(int);
-int	time(int*);
+uint	mstime();
+int	time(void);
 /*
  *	Miscellaneous Plan 9 functions
  */
@@ -448,238 +455,3 @@ byte	*getwd(byte*, int);
 int	putenv(byte*, byte*);
 void	syslog(int, byte*, byte*, ...);
 int	times(int*);
-/*	--CUT HERE--
- *	Definitions specific to FreeBSD
- */
-/* From <sys/dirent.h>. */
-aggr Dirent
-{
-	uint	fileno[2];	/* file number of entry */
-	int	off[2];	/* directory offset of entry */
-	usint	reclen;	/* length of this record */
-	byte	type;	/* file type, see below */
-	byte	pad0;
-	usint	namlen;	/* length of string in name */
-	usint	pad1;
-#define	MAXNAMLEN	255
-	byte	name[MAXNAMLEN + 1];	/* name must be no longer than this */
-};
-
-/* From <sys/event.h>. */
-#define EVFILT_READ		(-1)
-#define EVFILT_WRITE		(-2)
-#define EVFILT_SIGNAL		(-6)	/* attached to struct proc */
-#define EVFILT_TIMER		(-7)	/* timers */
-#define EVFILT_USER		(-11)	/* User events */
-
-/* actions */
-#define EV_ADD	0x0001		/* add event to kq (implies enable) */
-#define EV_DELETE	0x0002		/* delete event from kq */
-#define EV_ENABLE	0x0004		/* enable event */
-#define EV_DISABLE	0x0008		/* disable event (not reported) */
-
-/* flags */
-#define EV_CLEAR	0x0020		/* clear event state after reporting */
-
-/* returned values */
-#define EV_EOF		0x8000		/* EOF detected */
-#define EV_ERROR	0x4000		/* error, data contains errno */
-
-aggr Kevent
-{
-	uint	ident;		/* identifier for this event */
-	sint	filter;		/* filter for event */
-	usint	flags;		/* action flags for kqueue */
-	uint	fflags;		/* filter flag value */
-	// uint	_;
-	int	data[2];		/* filter data value */
-	void	*udata;		/* opaque user data identifier */
-	uint	ext[8];		/* extensions */
-};
-
-/* From <sys/mman.h>. */
-#define	PROT_NONE	0x00
-#define	PROT_READ	0x01
-#define	PROT_WRITE	0x02
-
-#define	MAP_SHARED	0x0001		/* share changes */
-#define	MAP_PRIVATE	0x0002		/* changes are private */
-#define	MAP_FIXED	0x0010
-#define	MAP_ANON	0x1000
-#define	MAP_EXCL	0x4000
-
-#define	MAP_FAILED ((void*)-1)
-
-#define	SHM_ANON		((byte *)1)
-
-/* From <sys/_timespec.h>. */
-aggr Timespec
-{
-	int	sec;
-	int	nsec;
-};
-
-/* From <sys/_timeval.h>. */
-aggr Timeval
-{
-	int	sec;
-	int	usec;
-};
-
-/* From <sys/resource.h>. */
-aggr Rusage
-{
-	Timeval	utime;	/* user time used */
-	Timeval	stime;	/* system time used */
-	int	maxrss;	/* max resident set size */
-	int	ixrss;	/* integral shared memory size */
-	int	idrss;	/* integral unshared data " */
-	int	isrss;		/* integral unshared stack " */
-	int	minflt;	/* page reclaims */
-	int	majflt;	/* page faults */
-	int	nswap;	/* swaps */
-	int	inblock;	/* block input operations */
-	int	oublock;	/* block output operations */
-	int	msgsnd;	/* messages sent */
-	int	msgrcv;	/* messages received */
-	int	nsignals;	/* signals received */
-	int	nvcsw;	/* voluntary context switches */
-	int	nivcsw;	/* involuntary " */
-};
-
-/* From <sys/_sigset.h>. */
-#define	_SIG_WORDS	4
-
-
-aggr Sigset
-{
-	uint bits[_SIG_WORDS];
-};
-
-
-/* From <sys/signal.h> */
-#define	SIGINT		2	/* interrupt */
-#define	SIGTERM		15	/* software termination signal from kill */
-
-#define	SIG_IGN		(void *)1
-
-#define	SA_ONSTACK	0x0001	/* take signal on signal stack */
-#define	SA_RESTART	0x0002	/* restart system call on signal return */
-#define	SA_SIGINFO	0x0040	/* signal handler with SA_SIGINFO args */
-
-
-aggr Sigaction {
-	void *handler;
-	int	flags;		/* see signal options below */
-	Sigset	mask;		/* signal mask to apply */
-};
-
-/* From <sys/stat.h>. */
-aggr Stat
-{
-	uint	dev[2];	/* inode's device */
-	uint	ino[2];	/* inode's number */
-	uint	nlink[2];	/* number of hard links */
-	usint	mode;	/* inode protection mode */
-	sint;
-	uint	uid;	/* user ID of the file's owner */
-	uint	gid;	/* group ID of the file's group */
-	int;
-	uint	rdev[2];	/* device type */
-	int	atim_ext;
-	Timespec	atim;	/* time of last access */
-	int	mtim_ext;
-	Timespec	mtim;	/* time of last data modification */
-	int	ctim_ext;
-	Timespec	ctim;	/* time of last file status change */
-	int birthtim_ext;
-	Timespec	birthtim;	/* time of file creation */
-	int	size[2];	/* file size, in bytes */
-	int	blocks[2];	/* blocks allocated for file */
-	int	blksize;	/* optimal blocksize for I/O */
-	uint	flags;	/* user defined flags for file */
-	uint	gen[2];	/* file generation number */
-	int	spare[20];
-};
-
-/* From <sys/socket.h>. */
-#define	AF_UNIX		1		/* standardized name for AF_LOCAL */
-#define	AF_INET		2		/* internetwork: UDP, TCP, etc. */
-#define	AF_INET6		28		/* IPv6 */
-
-#define	PF_INET		AF_INET
-
-#define	SOCK_STREAM	1		/* stream socket */
-#define	SOCK_DGRAM	2		/* datagram socket */
-#define	SOCK_RAW	3		/* raw-protocol interface */
-
-#define	SOL_SOCKET		0xffff		/* options for socket level */
-#define	SO_REUSEADDR	0x00000004	/* allow local address reuse */
-#define	SO_BROADCAST	0x00000020	/* permit sending of broadcast msgs */
-#define	SO_TYPE			0x1008		/* get socket type */
-
-
-aggr Sockaddr
-{
-	byte	len;
-	byte	family;
-	byte	data[20];
-};
-
-/* From <netinet/in.h>. */
-#define	INADDR_ANY		0
-#define	IPPROTO_TCP		6		/* tcp */
-
-
-aggr SockaddrIn
-{
-	byte	len;
-	byte	family;
-	usint	port;
-	uint	addr;
-	byte	zero[8];
-};
-
-int	_accept(int, Sockaddr*, uint*);
-int	_bind(int, Sockaddr*, uint);
-int	_dup(int);
-void	_exit(int);
-int	_close(int);
-int	_listen(int, int);
-int	_open(byte*, int, usint);
-int	_umtx_op(void*, int, int, void*, void*);
-int	clock_gettime(int, Timespec*);
-int	connect(int, Sockaddr*, uint);
-int	fchmod(int, usint);
-int	fcntl(int, int, ...);
-int	_fork();
-int	fstat(int, Stat*);
-int	fstatat(int, byte*, Stat*, int);
-int	ftruncate(int, int);
-int	futimes(int, Timeval*);
-int	getdirentries(int, byte*, uint, byte*);
-int	getrusage(int, Rusage*);
-int	getsockopt(int, int, int, void*, uint*);
-int	ioctl(int, uint, ...);
-int	kill(int, int);
-int	kevent(int, Kevent*, int, Kevent*, int, Timespec*);
-int	kqueue();
-int	lseek(int, uint, uint, int);
-int	mkdir(byte*, usint);
-void*	mmap(void*, uint, int, int, int, int);
-int	munmap(void*, uint);
-int	nanosleep(Timespec*, Timespec*);
-int	rmdir(byte*);
-int	sched_yield();
-int	setsockopt(int, int, int, void*, uint);
-int	shm_open2(byte*, int, usint, int, byte*);
-int	sigaction(int, Sigaction*, Sigaction*);
-int	socket(int, int, int);
-int	syscall(int, int, int, int);
-int	syscall6(int, int, int, int, int, int, int);
-int	syscall9(int, int, int, int, int, int, int, int, int, int);
-int	unlink(byte*);
-
-int	lstat(byte*, Stat*);
-int	stat(byte*, Stat*);
-byte*	strerror(int);

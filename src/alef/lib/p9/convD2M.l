@@ -1,10 +1,11 @@
 #include	<alef.h>
 #include	<fcall.h>
 
+
 uint
 sizeD2M(Dir *d)
 {
-	byte * sv[5];
+	byte *sv[5];
 	int	i, ns, nstr, fixlen;
 
 	sv[0] = d->name;
@@ -27,8 +28,8 @@ sizeD2M(Dir *d)
 uint
 convD2M(Dir *d, byte *buf, uint nbuf)
 {
-	byte * p, *ebuf;
-	byte * sv[5];
+	byte *p, *ebuf;
+	byte *sv[5];
 	int	i, ns, nsv[5], ss, nstr, fixlen;
 
 	if (nbuf < BIT16SZ)

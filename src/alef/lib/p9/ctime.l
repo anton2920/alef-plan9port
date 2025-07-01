@@ -30,7 +30,8 @@
  * ctime(t) just calls localtime, then asctime.
  */
 
-#include <alef.h>
+#include	<alef.h>
+
 
 aggr Tinfo
 {
@@ -76,7 +77,7 @@ localtime(int tim)
 
 	if (zonelookuptinfo(&ti, tim) != -1) {
 		ct = gmtime(tim + ti.tzoff);
-		strncpy(ct->zone, ti.zone, sizeof ct->zone - 1);
+		strncpy(ct->zone, ti.zone, sizeof ct->zone -1);
 		ct->zone[sizeof ct->zone-1] = 0;
 		ct->tzoff = ti.tzoff;
 		return ct;
@@ -128,7 +129,7 @@ gmtime(int tim)
 			day -= dysize(d1);
 	else
 		for (d1 = 70; day < 0; d1--)
-			day += dysize(d1 - 1);
+			day += dysize(d1 -1);
 	xtime.year = d1;
 	xtime.yday = d0 = day;
 
@@ -282,14 +283,14 @@ parsehead(void)
 	ver = tzdata[4];
 	if (ver != 0)
 		if (ver != '2')
-			return - 1;
+			return -1;
 
 	p = tzdata + 4 + 1 + 15;
 
 	z.timecnt = get4(p + 3 * 4);
 	z.typecnt = get4(p + 4 * 4);
 	if (z.typecnt == 0)
-		return - 1;
+		return -1;
 	z.bytecnt = get4(p + 5 * 4);
 	z.ptime = p + 6 * 4;
 	z.ptype = z.ptime + z.timecnt * 4;
@@ -370,7 +371,7 @@ zonetinfo(Tinfo *ti, int i)
 	if (tzdata == nil)
 		readtimezone();
 	if (i < 0 || i >= z.timecnt)
-		return - 1;
+		return -1;
 	ti->t = gett4(z.ptime + 4 * i);
 	ttinfo(ti, i);
 	return i;
@@ -396,11 +397,11 @@ zonelookuptinfo(Tinfo *ti, int t)
 		p += 4;
 	}
 	if (i > 0) {
-		ttinfo(ti, i - 1);
+		ttinfo(ti, i -1);
 		ti->t = oldtt;
-		return i - 1;
+		return i -1;
 	}
-	return - 1;
+	return -1;
 }
 
 
@@ -422,5 +423,3 @@ zonedump(int fd)
 		p += 4;
 	}
 }
-
-

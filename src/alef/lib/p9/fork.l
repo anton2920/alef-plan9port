@@ -1,5 +1,7 @@
 #include	<alef.h>
 #include	"run.h"
+#include	"sys.h"
+
 
 int
 fork()

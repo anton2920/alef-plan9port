@@ -1,17 +1,17 @@
-#include <alef.h>
-#include "run.h"
+#include	<alef.h>
+#include	"run.h"
 
 
 int
 errstr(byte *err, uint n)
 {
 	byte tmp[ERRLEN];
-	byte * syserr;
+	byte *syserr;
 
-	strncpy(tmp, err, n - 1);
+	strncpy(tmp, err, n -1);
 	rerrstr(err, n);
 	syserr = PROC.syserrstr;
-	strncpy(syserr, tmp, ERRLEN - 1);
+	strncpy(syserr, tmp, ERRLEN -1);
 	return 0;
 }
 
@@ -19,10 +19,10 @@ errstr(byte *err, uint n)
 void
 rerrstr(byte *err, uint n)
 {
-	byte * syserr;
+	byte *syserr;
 
 	syserr = PROC.syserrstr;
-	strncpy(err, syserr, n - 1);
+	strncpy(err, syserr, n -1);
 }
 
 

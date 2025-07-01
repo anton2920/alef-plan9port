@@ -1,6 +1,7 @@
 #include	<alef.h>
 #include	<fcall.h>
 
+
 intern
 byte*
 gstring(byte *p, byte *ep, byte **s)

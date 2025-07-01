@@ -1,4 +1,6 @@
-#include <alef.h>
+#include	<alef.h>
+#include	"sys.h"
+
 
 /*
  * System defined signals.
@@ -99,18 +101,18 @@ postnote(int who, int pid, byte *msg)
 	sig = _p9strsig(msg);
 	if (sig == 0) {
 		werrstr("unknown note");
-		return - 1;
+		return -1;
 	}
 
 	if (pid <= 0) {
 		werrstr("bad pid in postnote");
-		return - 1;
+		return -1;
 	}
 
 	switch (who) {
 	default:
 		werrstr("bad who in postnote");
-		return - 1;
+		return -1;
 	case PNPROC:
 		return kill(pid, sig);
 	case PNGROUP:

@@ -1,19 +1,14 @@
-#include <alef.h>
-#include <sys/syscall.h>
-#include "run.h"
+#include	<alef.h>
+#include	"sys.h"
+#include	"run.h"
 
-/* From <fcntl.h>. */
-#define	O_CREAT		0x0200		/* create if nonexistent */
+#include	<sys/syscall.h>
 
 
-(int, int, int)
-RawSyscall(int, int, int, int);
-(int, int, int)
-RawSyscall6(int, int, int, int, int, int, int);
-(int, int, int)
-RawSyscall9(int, int, int, int, int, int, int, int, int, int);
+(int, int, int)	RawSyscall(int, int, int, int);
+(int, int, int)	RawSyscall6(int, int, int, int, int, int, int);
+(int, int, int)	RawSyscall9(int, int, int, int, int, int, int, int, int, int);
 
-byte*	strerror(int);
 
 intern
 void error(int errno)
@@ -125,7 +120,7 @@ _fork()
 
 
 int
-fstat(int fd, Stat *sb)
+_fstat(int fd, Stat *sb)
 {
 	return syscall(SYS_fstat, fd, (int)sb, 0);
 }

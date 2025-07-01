@@ -1,6 +1,7 @@
-#include <alef.h>
+#include	<alef.h>
 
 #define	HZ	1000.0
+
 
 float
 cputime(void)
@@ -9,7 +10,7 @@ cputime(void)
 	int	t[4];
 
 	if (times(t) < 0) {
-		return - 1.0;
+		return -1.0;
 	}
 
 	ct += (float) t[0::3];
